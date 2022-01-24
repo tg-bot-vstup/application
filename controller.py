@@ -103,40 +103,38 @@ specialities_coefficient_dict = {
 
 
 async def get_all_areas_to_db():
-    # tasks = []
+    tasks = []
+    request_list = []
     areas = await get_areas_dict()
-    print("start")
+    connector = aiohttp.TCPConnector(limit=10, force_close=True)
+    request = aiohttp.ClientSession(connector=connector)
     if areas:
         for area, area_url in areas.items():
-            print(area)
             region = session.query(Region).filter(Region.name == area).first()
             if not region:
+                result_list = await main(area=area, area_url=area_url, request=request)
                 for area, universities_dict in result_list.items():
                     print(area)
-                    connector = aiohttp.TCPConnector(limit=10)
-                    async with aiohttp.ClientSession(connector=connector) as request:
-                        result_list = await main(area=area, area_url=area_url, request=request)
-                    request = aiohttp.ClientSession(connector=connector)
                     region = Region(name=area,
                                     region_coefficient=region_coefficient_dict[area])
                     session.add(region)
                     session.commit()
                     await get_all_universities_to_db(region, universities_dict)
-                    await request.close()
+        await request.close()
         session.commit()
 
 
 async def get_all_universities_to_db(region, universities_dict):
     tasks = []
     for university, departments_dict in universities_dict.items():
-        print(university)
+        print(f"    {university}")
         university_object = University(
             name=university,
             region_id=region.id
         )
         session.add(university_object)
         session.commit()
-        tasks.append(get_all_knowledge_areas_to_db(university_object, departments_dict))
+        tasks.append(asyncio.ensure_future(get_all_knowledge_areas_to_db(university_object, departments_dict)))
     await asyncio.wait(tasks)
 
 
@@ -145,6 +143,7 @@ async def get_all_knowledge_areas_to_db(university, departments_dict):
         tasks = []
         for knowledge_area, specialities_dict in departments_dict.items():
             if specialities_dict:
+                print(f"        {knowledge_area}")
                 knowledge_area_object = session.query(Knowledge_area).filter(
                     Knowledge_area.name == knowledge_area).first()
                 if not knowledge_area_object:
@@ -162,6 +161,7 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
     for speciality_id, speciality_dict in specialities_dict.items():
         if speciality_id:
             for speciality_name, speciality_values in speciality_dict.items():
+                print(f"            {speciality_name}")
                 speciality_index = speciality_name.split(" ")[0]
                 speciality_coefficient = specialities_coefficient_dict.get(speciality_index)
                 if not speciality_coefficient:
@@ -206,7 +206,5 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(get_all_areas_to_db())
+    asyncio.run(get_all_areas_to_db())
     print(datetime.datetime.now() - start)
-    # print(session.query(Speciality).count())
