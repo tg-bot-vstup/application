@@ -1,9 +1,10 @@
 import asyncio
 import datetime
 
+import aiohttp
 from sqlalchemy.orm import Session
 
-from parser import main
+from parser import main, get_areas_dict
 from db_models import Zno, Coefficient, Knowledge_area, Speciality, Region, University, engine
 
 session = Session(bind=engine)
@@ -101,18 +102,28 @@ specialities_coefficient_dict = {
 }
 
 
-async def get_all_areas_to_db(result_list):
-    tasks = []
-    for area_dict in result_list:
-        for area, universities_dict in area_dict.items():
+async def get_all_areas_to_db():
+    # tasks = []
+    areas = await get_areas_dict()
+    print("start")
+    if areas:
+        for area, area_url in areas.items():
             print(area)
-            region = Region(name=area,
-                            region_coefficient=region_coefficient_dict[area])
-            session.add(region)
-            session.commit()
-            tasks.append(get_all_universities_to_db(region, universities_dict))
-    await asyncio.wait(tasks)
-    session.commit()
+            region = session.query(Region).filter(Region.name == area).first()
+            if not region:
+                for area, universities_dict in result_list.items():
+                    print(area)
+                    connector = aiohttp.TCPConnector(limit=10)
+                    async with aiohttp.ClientSession(connector=connector) as request:
+                        result_list = await main(area=area, area_url=area_url, request=request)
+                    request = aiohttp.ClientSession(connector=connector)
+                    region = Region(name=area,
+                                    region_coefficient=region_coefficient_dict[area])
+                    session.add(region)
+                    session.commit()
+                    await get_all_universities_to_db(region, universities_dict)
+                    await request.close()
+        session.commit()
 
 
 async def get_all_universities_to_db(region, universities_dict):
@@ -153,8 +164,6 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
             for speciality_name, speciality_values in speciality_dict.items():
                 speciality_index = speciality_name.split(" ")[0]
                 speciality_coefficient = specialities_coefficient_dict.get(speciality_index)
-                print(speciality_index)
-                print(speciality_name[0:4])
                 if not speciality_coefficient:
                     speciality_coefficient = 1
                 speciality_object = Speciality(
@@ -198,6 +207,6 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
 if __name__ == '__main__':
     start = datetime.datetime.now()
     loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(main())
-    loop.run_until_complete(get_all_areas_to_db(result))
+    loop.run_until_complete(get_all_areas_to_db())
     print(datetime.datetime.now() - start)
+    # print(session.query(Speciality).count())
