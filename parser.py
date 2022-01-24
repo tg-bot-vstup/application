@@ -126,6 +126,7 @@ async def get_university_department(request, university, university_url: str):
                             except IndexError:
                                 department = "-"
                             knowledge_area = dep.text.split("Галузь:")[1].split('Спеціальність')[0].strip()
+                            print(knowledge_area)
                             speciality = dep.find("a").text
                             program = dep.text.split("Освітня програма:")[1].split("\n")[0].strip()
                             speciality_url = "https://vstup.osvita.ua" + dep.find("a", class_="green-button").get("href")
@@ -178,11 +179,6 @@ async def process_area(request, area, area_url):
 
 
 async def main(area, area_url, request):
-    # areas = await get_areas_dict(request)
-    # tasks = []
-    # if areas:
-    #     for area, area_url in areas.items():
-    #         print(f"Processing area {area}")
     done = await process_area(request, area, area_url)
     return done
 
