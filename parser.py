@@ -145,17 +145,17 @@ async def get_university_department(session, university, university_url: str):
                                 grades_dict[name] = coefficient[1]
                             else:
                                 grades_dict[name] = coefficient[0]
-                        if department not in departments_dict.keys():
-                            departments_dict[department] = {}
-                        if speciality not in departments_dict[department]:
-                            departments_dict[department].setdefault(f"speciality{counter}", {})
-                            departments_dict[department][f"speciality{counter}"][speciality] = {"zno": grades_dict}
+                        if knowledge_area not in departments_dict.keys():
+                            departments_dict[knowledge_area] = {}
+                        if speciality not in departments_dict[knowledge_area]:
+                            departments_dict[knowledge_area].setdefault(f"speciality{counter}", {})
+                            departments_dict[knowledge_area][f"speciality{counter}"][speciality] = {"zno": grades_dict}
                         min_budget, avg_contract = await parse_one_speciality(session, speciality_url)
-                        departments_dict[department][f"speciality{counter}"][speciality]["old_budget"] = min_budget
-                        departments_dict[department][f"speciality{counter}"][speciality]["old_contract"] = avg_contract
-                        departments_dict[department][f"speciality{counter}"][speciality][
-                            "knowledge_area"] = knowledge_area
-                        departments_dict[department][f"speciality{counter}"][speciality]["program"] = program
+                        departments_dict[knowledge_area][f"speciality{counter}"][speciality]["old_budget"] = min_budget
+                        departments_dict[knowledge_area][f"speciality{counter}"][speciality]["old_contract"] = avg_contract
+                        departments_dict[knowledge_area][f"speciality{counter}"][speciality][
+                            "department"] = department
+                        departments_dict[knowledge_area][f"speciality{counter}"][speciality]["program"] = program
                     return (university, departments_dict)
                 break
         except SocketError as e:
@@ -195,7 +195,6 @@ async def main():
             tasks.append(asyncio.ensure_future(
                 process_area(session, area, area_url)
             ))
-            break
     done = await asyncio.gather(*tasks)
     await session.close()
     return done
