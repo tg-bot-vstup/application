@@ -126,22 +126,23 @@ async def get_all_areas_to_db():
 async def get_all_universities_to_db(region, universities_dict):
     tasks = []
     for university, departments_dict in universities_dict.items():
-        print(f"    {university}")
-        university_object = session.query(
-            University
-        ).filter(
-            University.name == university,
-            University.region_id == region.id
-        ).first()
-        if not university_object:
-            university_object = University(
-                name=university,
-                region_id=region.id
-            )
-            session.add(university_object)
-            session.commit()
-        tasks.append(asyncio.ensure_future(get_all_knowledge_areas_to_db(university_object, departments_dict)))
-    await asyncio.wait(tasks)
+        if departments_dict and university:
+            print(f"    {university}")
+            university_object = session.query(
+                University
+            ).filter(
+                University.name == university,
+                University.region_id == region.id
+            ).first()
+            if not university_object:
+                university_object = University(
+                    name=university,
+                    region_id=region.id
+                )
+                session.add(university_object)
+                session.commit()
+            tasks.append(asyncio.ensure_future(get_all_knowledge_areas_to_db(university_object, departments_dict)))
+        await asyncio.wait(tasks)
 
 
 async def get_all_knowledge_areas_to_db(university, departments_dict):
@@ -216,12 +217,13 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                     if not coefficient_object:
                         coefficient_object = Coefficient(
                             speciality_id=speciality_object.id,
-                            zno_id=zno.id,
-                            required=True
+                            zno_id=zno.id
                         )
                     coefficient_object.coefficient = float(coefficient)
                     if '*' in subject:
                         coefficient_object.required = False
+                    else:
+                        coefficient_object.required = True
                     session.add(coefficient_object)
     session.commit()
 
@@ -230,14 +232,5 @@ if __name__ == '__main__':
     # start = datetime.datetime.now()
     # asyncio.run(get_all_areas_to_db())
     # print(datetime.datetime.now() - start)
-    regions = session.query(Speciality).distinct(
-        Speciality.name,
-        Speciality.program,
-        Speciality.area_id,
-        Speciality.faculty,
-        Speciality.speciality_coefficient,
-        Speciality.speciality_url
-    ).count()
-    print(regions)
-    # for region in regions:
-    #     print(region.name)
+    a = session.query(University, Knowledge_area).join(University, Knowledge_area.university_id == University.id).filter(University.id == "100").all()
+    print(a)

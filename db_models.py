@@ -102,7 +102,7 @@ class University(Base):
     def __repr__(self):
         return self.name
 
-
-# Base.metadata.drop_all(bind=engine)
+if __name__ == "__main__":
+    Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(engine)
 
