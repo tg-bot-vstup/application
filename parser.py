@@ -153,16 +153,17 @@ async def get_university_department(request, university, university_url: str):
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality][
                                 "department"] = department
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality]["program"] = program
+                            departments_dict[knowledge_area][f"speciality{counter}"][speciality]["speciality_url"] = speciality_url
                         return (university, departments_dict)
                 break
-        except (SocketError, TimeoutError) as e:
+        except SocketError as e:
             if e.errno != errno.ECONNRESET:
                 raise e
             pass
     return None, None
 
 
-async def process_area(request, area, area_url):
+async def main(area, area_url, request):
     universities = await get_area_universities(request, area_url)
     tasks = []
     uni_dict = {}
@@ -178,11 +179,6 @@ async def process_area(request, area, area_url):
     return {area: uni_dict}
 
 
-async def main(area, area_url, request):
-    done = await process_area(request, area, area_url)
-    return done
-
-
 if __name__ == "__main__":
     print("da")
     # start = datetime.datetime.now()
@@ -191,21 +187,20 @@ if __name__ == "__main__":
     # print(datetime.datetime.now() - start)
 
 """
-result_example = [
-                    {"[Area]":
-                          {"[University]":
-                               {"[speciality_id]":
-                                    {"[Speciality]":
-                                         {"zno":
-                                              {"[subject]":"[coefficient]"},
-                                          "old_contract": "[grade or none]",
-                                          "old_budget": "[grade or none]",
-                                          "knowledge_area": "[name of knowledge_area]",
-                                          "program": "[program name]"
-                                          }
-                                     }
+result_example = {
+                    "[Area]":
+                        {"[University]":
+                            {"[speciality_id]":
+                                {"[Speciality]":
+                                    {"zno":
+                                        {"[subject]":"[coefficient]"},
+                                    "old_contract": "[grade or none]",
+                                    "old_budget": "[grade or none]",
+                                    "knowledge_area": "[name of knowledge_area]",
+                                    "program": "[program name]"
+                                    }
                                 }
-                          }
-                    }
-                ]
+                            }
+                        }
+                 }
 """

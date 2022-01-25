@@ -151,7 +151,9 @@ async def get_all_knowledge_areas_to_db(university, departments_dict):
             if specialities_dict:
                 print(f"        {knowledge_area}")
                 knowledge_area_object = session.query(Knowledge_area).filter(
-                    Knowledge_area.name == knowledge_area).first()
+                    Knowledge_area.name == knowledge_area,
+                    Knowledge_area.university_id == university.id
+                ).first()
                 if not knowledge_area_object:
                     knowledge_area_object = Knowledge_area(
                         name=knowledge_area,
@@ -173,11 +175,10 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                 speciality_object = session.query(Speciality).filter_by(
                     name=speciality_name,
                     program=speciality_values["program"],
-                    min_rate_budget=speciality_values["old_budget"],
-                    average_rate_contract=speciality_values["old_contract"],
                     area_id=knowledge_area.id,
                     faculty=speciality_values["department"],
-                    speciality_coefficient=speciality_coefficient
+                    speciality_coefficient=speciality_coefficient,
+                    speciality_url=speciality_values["speciality_url"]
                 ).first()
                 if not speciality_coefficient:
                     speciality_coefficient = 1
@@ -189,47 +190,59 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                         average_rate_contract=speciality_values["old_contract"],
                         area_id=knowledge_area.id,
                         faculty=speciality_values["department"],
-                        speciality_coefficient=speciality_coefficient
+                        speciality_coefficient=speciality_coefficient,
+                        speciality_url=speciality_values["speciality_url"]
                     )
                     session.add(speciality_object)
-
-                    for subject, coefficient in speciality_values["zno"].items():
-                        if "*" in subject:
-                            zno = session.query(Zno).filter(Zno.name == subject[:-1]).first()
-                            if not zno:
-                                zno = Zno(
-                                    name=subject[:-1]
-                                )
-                                session.add(zno)
-                        else:
-                            zno = session.query(Zno).filter(Zno.name == subject).first()
-                            if not zno:
-                                zno = Zno(
-                                    name=subject
-                                )
-                                session.add(zno)
-                        coefficient_object = session.query(
-                            Coefficient
-                        ).filter_by(
+                    session.commit()
+                for subject, coefficient in speciality_values["zno"].items():
+                    if "*" in subject:
+                        zno = session.query(Zno).filter(Zno.name == subject[:-1]).first()
+                        if not zno:
+                            zno = Zno(
+                                name=subject[:-1]
+                            )
+                            session.add(zno)
+                            session.commit()
+                    else:
+                        zno = session.query(Zno).filter(Zno.name == subject).first()
+                        if not zno:
+                            zno = Zno(
+                                name=subject
+                            )
+                            session.add(zno)
+                            session.commit()
+                    coefficient_object = session.query(
+                        Coefficient
+                    ).filter_by(
+                        speciality_id=speciality_object.id,
+                        zno_id=zno.id
+                    ).first()
+                    if not coefficient_object:
+                        coefficient_object = Coefficient(
                             speciality_id=speciality_object.id,
                             zno_id=zno.id,
-                            coefficient=float(coefficient)
-                        ).first()
-                        if not coefficient_object:
-                            coefficient_object = Coefficient(
-                                speciality_id=speciality_object.id,
-                                zno_id=zno.id,
-                                coefficient=float(coefficient),
-                                required=True
-                            )
-                            session.add(coefficient_object)
-                        if '*' in subject:
-                            coefficient_object.required = False
-                        session.add(coefficient_object)
+                            required=True
+                        )
+                    coefficient_object.coefficient = float(coefficient)
+                    if '*' in subject:
+                        coefficient_object.required = False
+                    session.add(coefficient_object)
     session.commit()
 
 
 if __name__ == '__main__':
-    start = datetime.datetime.now()
-    asyncio.run(get_all_areas_to_db())
-    print(datetime.datetime.now() - start)
+    # start = datetime.datetime.now()
+    # asyncio.run(get_all_areas_to_db())
+    # print(datetime.datetime.now() - start)
+    regions = session.query(Speciality).distinct(
+        Speciality.name,
+        Speciality.program,
+        Speciality.area_id,
+        Speciality.faculty,
+        Speciality.speciality_coefficient,
+        Speciality.speciality_url
+    ).count()
+    print(regions)
+    # for region in regions:
+    #     print(region.name)
