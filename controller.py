@@ -135,7 +135,7 @@ async def get_all_knowledge_areas_to_db(university, departments_dict):
         for knowledge_area, specialities_dict in departments_dict.items():
             if specialities_dict:
                 knowledge_area_object = session.query(Knowledge_area).filter(
-                    Knowledge_area.name == knowledge_area).first()
+                    Knowledge_area.name == knowledge_area,university_id=university.id).first()
                 if not knowledge_area_object:
                     knowledge_area_object = Knowledge_area(
                         name=knowledge_area,

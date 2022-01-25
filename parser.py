@@ -189,12 +189,17 @@ async def main():
     session = aiohttp.ClientSession(connector=connector)
     areas = await get_areas_dict(session)
     tasks = []
+    area_counter = 0
     if areas:
         for area, area_url in areas.items():
-            print(f"Processing area {area}")
-            tasks.append(asyncio.ensure_future(
-                process_area(session, area, area_url)
-            ))
+            if area_counter >= 1:
+                break
+            else:
+                area_counter += 1
+                print(f"Processing area {area}")
+                tasks.append(asyncio.ensure_future(
+                    process_area(session, area, area_url)
+                ))
     done = await asyncio.gather(*tasks)
     await session.close()
     return done
