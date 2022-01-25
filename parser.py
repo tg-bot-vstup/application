@@ -181,8 +181,8 @@ async def main(area, area_url, request):
 
 if __name__ == "__main__":
     start = datetime.datetime.now()
-    loop = asyncio.get_event_loop()
-    print(loop.run_until_complete(main()))
+    # loop = asyncio.get_event_loop()
+    # print(loop.run_until_complete(main()))
     print(datetime.datetime.now() - start)
 
 """
