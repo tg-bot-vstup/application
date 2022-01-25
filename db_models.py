@@ -1,9 +1,12 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+from dotenv import load_dotenv
+import os
 
-engine = create_engine(
-    'postgresql://xoxoji:Dbpassword1@database-1.cz11cjovxwbb.eu-central-1.rds.amazonaws.com/abithelp_db')
+load_dotenv()
+
+engine = create_engine(os.environ.get('DATABASE_URL'))
 engine.connect()
 session = sessionmaker()
 session.configure(bind=engine)

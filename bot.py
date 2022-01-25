@@ -5,12 +5,12 @@ from aiogram.dispatcher.filters import Text
 from bot_controller import Controller
 from keyboards import Keyboard, Buttons
 from states import States
+from dotenv import load_dotenv
+import os
 
-key = '5229661812:AAFn6r1nGMeorvaboJWa0jJL5rvA6kP96iA'
-bot = Bot(token=key)
-
+load_dotenv()
+bot = Bot(token=os.environ.get('TOKEN'))
 db_cont = Controller()
-
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 ''' Message Handlers '''

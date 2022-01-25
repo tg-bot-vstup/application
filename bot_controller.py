@@ -55,3 +55,18 @@ class Controller():
         znos = session.query(Zno).all()
 
         return znos
+
+    def set_grade(tg_id, zno, grade):
+        # setting grade for particular user
+
+        user = session.query(Users).filter_by(tg_id=tg_id).first()
+        user_grade = session.query(Grades).filter(
+            Grades.zno_id == zno, user_id=user.id).first()
+
+        if not user_grade:
+            user_grade = Grades(
+                user_id=user.id, grade=grade, zno_id=zno)
+            session.add(user_grade)
+        else:
+            user_grade.grade = grade
+        session.commit()
