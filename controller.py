@@ -173,11 +173,6 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                 speciality_index = speciality_name.split(" ")[0]
                 speciality_coefficient = specialities_coefficient_dict.get(speciality_index)
                 speciality_object = session.query(Speciality).filter_by(
-                    name=speciality_name,
-                    program=speciality_values["program"],
-                    area_id=knowledge_area.id,
-                    faculty=speciality_values["department"],
-                    speciality_coefficient=speciality_coefficient,
                     speciality_url=speciality_values["speciality_url"]
                 ).first()
                 if not speciality_coefficient:
