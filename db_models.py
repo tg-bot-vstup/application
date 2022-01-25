@@ -2,7 +2,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean, crea
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
-engine = create_engine('postgresql+psycopg2://postgres:postgres@localhost/telegram_bot_db')
+engine = create_engine(
+    'postgresql://xoxoji:Dbpassword1@database-1.cz11cjovxwbb.eu-central-1.rds.amazonaws.com/abithelp_db')
 engine.connect()
 session = sessionmaker()
 session.configure(bind=engine)
@@ -83,12 +84,20 @@ class Speciality(Base):
     speciality_url = Column(String(255))
     speciality_coefficient = Column(Float)
 
+    def __repr__(self):
+
+        return self.name
+
 
 class Region(Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
     region_coefficient = Column(Integer)
+
+    def __repr__(self):
+
+        return self.name
 
 
 class University(Base):
@@ -105,4 +114,3 @@ class University(Base):
 # if __name__ == "__main__":
 #     Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(engine)
-
