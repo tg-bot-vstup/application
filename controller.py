@@ -229,8 +229,6 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
 
 
 if __name__ == '__main__':
-    # start = datetime.datetime.now()
-    # asyncio.run(get_all_areas_to_db())
-    # print(datetime.datetime.now() - start)
-    a = session.query(University, Knowledge_area).join(University, Knowledge_area.university_id == University.id).filter(University.id == "100").all()
-    print(a)
+    start = datetime.datetime.now()
+    asyncio.run(get_all_areas_to_db())
+    print(datetime.datetime.now() - start)
