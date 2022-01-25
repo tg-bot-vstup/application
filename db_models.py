@@ -81,6 +81,7 @@ class Speciality(Base):
     area_id = Column(Integer, ForeignKey('knowledge_area.id'))
     area = relationship('Knowledge_area', backref='specialities')
     faculty = Column(String(255))
+    speciality_url = Column(String(255))
     speciality_coefficient = Column(Float)
 
     def __repr__(self):
@@ -110,6 +111,6 @@ class University(Base):
     def __repr__(self):
         return self.name
 
-
-# Base.metadata.drop_all(bind=engine)
+if __name__ == "__main__":
+    Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(engine)
