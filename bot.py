@@ -8,6 +8,7 @@ from states import States
 from dotenv import load_dotenv
 from utils import get_zno
 import os
+from time import sleep
 
 load_dotenv()
 bot = Bot(token=os.environ.get('TOKEN'))
@@ -117,10 +118,16 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['spec'] = callback_query.data
     await callback_query.message.edit_text('Рахуемо...')
-    Controller.get_chances(
+    sleep(1)
+    #await callback_query.message.edit_text(Controller.demo(),
+    #    parse_mode=types.ParseMode.MARKDOWN)
+    info = Controller.get_chances(
         callback_query.from_user.id,
         data['region'],
         data['spec'])
+    n = '\n'
+    await callback_query.message.edit_text(f'''
+        Ви можете поступити до {n.join(info)}''')
     await callback_query.answer()
 
 @dp.callback_query_handler(Text(startswith='set'), state='*')

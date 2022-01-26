@@ -88,27 +88,35 @@ class Controller():
 
         user = session.query(Users).filter_by(
             tg_id=tg_id).first()
+        print(spec)
         user_grades = user.grades
-        coefficients = session.query(University, Region, Knowledge_area, Speciality).join(
-            University,
-            University.region_id == Region.id).filter(
+        '''Getting coefs for speciality in every univercity at the region'''
+        coefficients = session.query(
+            University, Region, Knowledge_area, Speciality).filter(
+            University.region_id == Region.id,
             Region.id == region,
             Knowledge_area.university_id == University.id,
             Knowledge_area.id == Speciality.area_id,
-            Speciality.name == spec).all()
+            Speciality.name.startswith(spec)).distinct(University.name)
+        print(coefficients)
 
-        print(coefficients,'\n',user_grades,'\n',spec)
+        return [str(x.University) for x in coefficients]
 
+    def checking(grades,speciality_data):
+
+        coefficients = speciality_data.coefficients
+        for coef in coefficients:
+            print(coef.required)
 '''
 areas = session.query(University, Region, Knowledge_area, Speciality).join(
     University,
     University.region_id == Region.id).filter(
-    Region.id == 24,
+    Region.id == 1,
     Knowledge_area.university_id == University.id,
     Knowledge_area.id == Speciality.area_id,
-    Speciality.name == "073 Менеджмент").all()
+    Speciality.name == "121 Інженерія програмного забезпечення").all()
 
 for i in areas:
-    print(i.Speciality)
-    print(i.Speciality.coefficients)
+    print(i)
+#    Controller.checking(2,i)
 '''
