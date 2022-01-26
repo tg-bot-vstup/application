@@ -72,4 +72,4 @@ class Buttons():
     for zno in znos:
         if zno.id <= 9 or zno.id == 14:
             set_grade.insert(InlineKeyboardButton(
-                text=zno.name,callback_data=zno.id))
+                text=zno.name,callback_data=f'set_{zno.id}'))

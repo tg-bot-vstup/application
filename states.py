@@ -7,3 +7,4 @@ class States(StatesGroup):
     choose_spec = State()
     choose_region = State()
     choose_uni = State()
+    search = State()

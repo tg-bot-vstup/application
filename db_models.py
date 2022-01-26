@@ -50,7 +50,7 @@ class Coefficient(Base):
 
     id = Column(Integer, primary_key=True)
     speciality_id = Column(Integer, ForeignKey('speciality.id'))
-    speciality = relationship('Speciality')
+    speciality = relationship('Speciality', backref='coefficients')
     zno_id = Column(Integer, ForeignKey('zno.id'))
     zno = relationship('Zno', backref='coefficients')
     coefficient = Column(Float)
@@ -96,7 +96,7 @@ class Region(Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
-    region_coefficient = Column(Integer)
+    region_coefficient = Column(Float)
 
     def __repr__(self):
 
