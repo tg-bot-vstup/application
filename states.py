@@ -8,3 +8,5 @@ class States(StatesGroup):
     choose_region = State()
     choose_uni = State()
     search = State()
+    choice_adding = State()
+    add_from = State()

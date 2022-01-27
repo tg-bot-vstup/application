@@ -16,12 +16,18 @@ class Keyboard():
     home.add(button_add, button_my)
     home.add(button_where)
 
+    choice = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=True)
+    yes = KeyboardButton('Так')
+    no = KeyboardButton('Нi')
+    back = KeyboardButton('Назад')
+    choice.add(yes,no)
+    choice.add('Назад')
+
 
 class Buttons():
     '''Inline buttons'''
 
     regions = Controller.get_regions()
-
     select_region = InlineKeyboardMarkup(row_width=2)
 
     for region in regions:
@@ -45,12 +51,10 @@ class Buttons():
 
         select_area = InlineKeyboardMarkup(row_width=2)
         areas = Controller.get_areas()
-        print(areas)
-
         for area in areas:
             if area.specialities:
                 select_area.insert(InlineKeyboardButton(
-                    text=area.name,callback_data=area.name[:15]))
+                    text=area.name, callback_data=area.name[:15]))
 
         return select_area
 
@@ -61,15 +65,22 @@ class Buttons():
 
         for spec in specialities:
             print(spec[0])
-            select_spec.insert(InlineKeyboardButton(    
-                text=spec[0].name,callback_data=spec[0].name[:15]))
+            select_spec.insert(InlineKeyboardButton(
+                text=spec[0].name, callback_data=spec[0].name[:15]))
 
         return select_spec
 
     znos = Controller.get_znos()
     set_grade = InlineKeyboardMarkup(row_width=2)
-
+    #Getting only zno subjects and attestat
     for zno in znos:
         if zno.id <= 9 or zno.id == 14:
             set_grade.insert(InlineKeyboardButton(
-                text=zno.name,callback_data=f'set_{zno.id}'))
+                text=zno.name, callback_data=f'set_{zno.id}'))
+
+    #choice buttons
+    choice = InlineKeyboardMarkup(row_width=2)
+    choice.insert(InlineKeyboardButton(
+        text='Нi', callback_data='no'))
+    choice.insert(InlineKeyboardButton(
+        text='Так', callback_data='yes'))

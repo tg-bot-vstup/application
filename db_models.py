@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-engine = create_engine(os.environ.get('DATABASE_URL'))
+engine = create_engine(os.environ.get('DATABASE_URL'),pool_pre_ping=True)
 engine.connect()
 session = sessionmaker()
 session.configure(bind=engine)
