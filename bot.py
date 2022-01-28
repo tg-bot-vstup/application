@@ -45,17 +45,20 @@ async def get_regions(message: types.Message):
 async def get_grades(message: types.Message):
     grades = Controller().ma_balls(message.from_user.id)
     gradez = [str(grade) for grade in grades]
-    n = '\n'
+    n = '\n'  # variable bcs f-string can't handle backslash
     await message.answer(f'''{n.join(gradez)}
 Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
-        reply_markup=Buttons.configure_grades(message.from_user.id))
+                         reply_markup=Buttons.configure_grades(message.from_user.id))
+
 
 @dp.message_handler(state=States.grade)
 async def get_grades(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
-        print(data)
         zno_id = data['zno_id']
+        '''checking what we got from state
+        because we can get name when we are calling
+        state from checking chances'''
         if not zno_id.isdigit():
             zno_id = Controller.get_zno_id(zno_id)
         try:
@@ -84,6 +87,40 @@ async def set_grades(message: types.Message, state: FSMContext):
     await message.answer("Оберiть предмет",
                          reply_markup=Buttons.set_grade)
 
+@dp.message_handler(state=States.add_from)
+async def addicional_zno(message: types.Message, state: FSMContext):
+    '''Offering user to add missing grades for speciality '''
+    async with state.proxy() as data:
+        #checking reply from keyboard
+        if message.text == 'Так':
+            current_zno = data['subjects'][0]
+            await message.answer(f'Введiть оцiнку з {current_zno}')
+        elif message.text == 'Нi':
+            await message.answer('Повертаємось до головного меню',
+                                 reply_markup=Keyboard.home)
+            await state.finish()
+        #checking for each subject in subject
+        else:
+            if data['subjects']:
+                current_zno = data['subjects'][0]
+                zno_id = Controller.get_zno_id(current_zno)
+                grade = message.text
+                Controller.set_grade(message.from_user.id, zno_id, grade)
+                data['subjects'].remove(current_zno)
+                if data['subjects']:
+                    await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
+                else:
+                    #change state only when user added all grades
+                    await message.answer('Всi оцiнки доданi. Спробуйте ще раз',
+                                         reply_markup=Keyboard.home)
+                    await state.finish()
+            else:
+                message.answer('Всi оцiнки доданi. Спробуйте ще раз',
+                               reply_markup=Keyboard.home)
+                await state.finish()
+
+
+''' Callback handlers'''
 
 @dp.callback_query_handler(state=States.choose_region)
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
@@ -124,21 +161,21 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
 *{n.join(info['data']['budget'])}* \n*За контрактом* до\
  усiх, де проходите за бюджетом, а також до: 
 *{n.join(info['data']['contract'])}*''',
-            parse_mode=types.ParseMode.MARKDOWN)
+                                                   parse_mode=types.ParseMode.MARKDOWN)
         elif info['data']['contract'] and not info['data']['budget']:
             await callback_query.message.edit_text(f'''
                 Ви можете вступити *лише за контрактом* до:
 -*{n.join(info['data']['contract'])}*''',
-            parse_mode=types.ParseMode.MARKDOWN)
+                                                   parse_mode=types.ParseMode.MARKDOWN)
         elif info['data']['budget'] and not info['data']['contract']:
             await callback_query.message.edit_text(f'''
                 Ви можете вступити *за бюджетом та за контрактом* до:
 *{n.join(info['data']['budget'])}*''',
-            parse_mode=types.ParseMode.MARKDOWN)
+                                                   parse_mode=types.ParseMode.MARKDOWN)
         else:
             await callback_query.message.edit_text(f'''
                 Нажаль ви *не можете вступити* за цiєю спецiальнiстю''',
-            parse_mode=types.ParseMode.MARKDOWN)
+                                                   parse_mode=types.ParseMode.MARKDOWN)
     else:
         await callback_query.message.answer(
             f'''Нажаль ви не можете вступити за цiєю спецiальнiстю,\
@@ -149,35 +186,6 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
         data['subjects'] = info['data']
     await States.add_from.set()
     await callback_query.answer()
-
-
-@dp.message_handler(state=States.add_from)
-async def addicional_zno(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        if message.text == 'Так':
-            current_zno = data['subjects'][0]
-            await message.answer(f'Введiть оцiнку з {current_zno}')
-        elif message.text == 'Нi':
-            await message.answer('Повертаємось до головного меню',
-                           reply_markup=Keyboard.home)
-            await state.finish()
-        else:
-            if data['subjects']:
-                current_zno = data['subjects'][0]
-                zno_id = Controller.get_zno_id(current_zno)
-                grade = message.text
-                Controller.set_grade(message.from_user.id, zno_id, grade)
-                data['subjects'].remove(current_zno)
-                if data['subjects']:
-                    await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
-                else:
-                    await message.answer('Всi оцiнки доданi. Спробуйте ще раз',
-                                   reply_markup=Keyboard.home)
-                    await state.finish()
-            else:
-                message.answer('Всi оцiнки доданi. Спробуйте ще раз',
-                               reply_markup=Keyboard.home)
-                await state.finish()
 
 
 @dp.callback_query_handler(Text(startswith='set'), state='*')

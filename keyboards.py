@@ -50,7 +50,7 @@ class Buttons():
     def areas():
 
         select_area = InlineKeyboardMarkup(row_width=2)
-        areas = Controller().get_areas()
+        areas = Controller.get_areas()
         for area in areas:
             if area.get('specs'):
                 select_area.insert(InlineKeyboardButton(
@@ -61,7 +61,7 @@ class Buttons():
     def get_specs(area):
 
         select_spec = InlineKeyboardMarkup(row_width=2)
-        specialities = Controller().get_specs(area)
+        specialities = Controller.get_specs(area)
 
         for spec in specialities:
             print(spec[0])
