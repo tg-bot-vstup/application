@@ -1,12 +1,17 @@
 from db_models import *
-from sqlalchemy.orm import Session
 from time import time
 
-session = Session(bind=engine)
+Session = sessionmaker(bind=engine)
 
+
+session = Session()
 
 class Controller():
     '''Another class for requests from bot to database'''
+
+    def __init__(self):
+
+        self.session = Session()
 
     def create_user(self, tg_id):
 
@@ -30,15 +35,18 @@ class Controller():
 
         return [uni for uni in region.university if uni.knowledge_area]
 
-    def get_areas():
+    def get_areas(self):
 
         try:
-            areas = session.query(Knowledge_area).distinct(Knowledge_area.name)
+            areas = session.query(Knowledge_area).distinct(Knowledge_area.name).all()
+            print(areas)
         except:
+            print('someshit')
+            session.rollback()
             Controller.get_areas()
-        return areas
+        return [{'name':area.name,'specs':area.specialities} for area in areas]
 
-    def get_specs(area):
+    def get_specs(self,area):
 
         specs = session.query(Speciality, Knowledge_area).filter(
             Speciality.area_id == Knowledge_area.id,
@@ -47,9 +55,9 @@ class Controller():
 
         return specs
 
-    def ma_balls(tg_id):
+    def ma_balls(self,tg_id):
 
-        user = session.query(Users).filter_by(tg_id=tg_id).first()
+        user = self.session.query(Users).filter_by(tg_id=tg_id).first()
         if not user.grades:
             return ['У вас немає оцiнок']
         return [str(grade) for grade in user.grades]
@@ -93,7 +101,7 @@ class Controller():
                 session.commit()
                 return 'Оцiнка оновлена'
 
-    def get_chances(tg_id, region, spec):
+    def get_chances(self,tg_id, region, spec):
 
         user = session.query(Users).filter_by(
             tg_id=tg_id).first()
@@ -128,6 +136,7 @@ class Controller():
         return {'result': True, 
         'data': {'budget': budg, 'contract': cont}}
 
+    @staticmethod
     def checking(grades, speciality_data):
 
         coefficients = speciality_data.coefficients
@@ -148,6 +157,8 @@ class Controller():
                     if score[0].grade >= max_nr:
                         max_nr = score[0].grade * coef.coefficient
 
+        if max_nr == 0:
+            return('ss',[coef.zno for coef in coefficients if not coef.required])
         znos.append(max_nr)
         zno_score = sum(znos) * speciality_data.speciality_coefficient
         return (zno_score, invalid_znos)

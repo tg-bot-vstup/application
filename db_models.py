@@ -7,9 +7,6 @@ import os
 load_dotenv()
 
 engine = create_engine(os.environ.get('DATABASE_URL'),pool_pre_ping=True)
-engine.connect()
-session = sessionmaker()
-session.configure(bind=engine)
 
 Base = declarative_base()
 
@@ -64,7 +61,6 @@ class Knowledge_area(Base):
     __tablename__ = 'knowledge_area'
 
     id = Column(Integer, primary_key=True)
-    # code = Column(BigInteger)
     name = Column(String(255))
     university = relationship('University', backref='knowledge_area')
     university_id = Column(Integer, ForeignKey('university.id'))

@@ -31,7 +31,6 @@ async def hello(message: types.Message):
 async def hello(message: types.Message):
     await message.answer('Повертаємось до головного меню',
                          reply_markup=Keyboard.home)
-    db_cont.create_user(message.from_user.id)
 
 
 @dp.message_handler(Text(equals='Куди я можу вступити?', ignore_case=True), state='*')
@@ -44,7 +43,7 @@ async def get_regions(message: types.Message):
 
 @dp.message_handler(Text(equals='Мої бали', ignore_case=True), state='*')
 async def get_grades(message: types.Message):
-    grades = Controller.ma_balls(message.from_user.id)
+    grades = Controller().ma_balls(message.from_user.id)
     await message.answer('\n'.join(grades))
 
 
@@ -82,19 +81,6 @@ async def set_grades(message: types.Message, state: FSMContext):
     await message.answer("Оберiть предмет",
                          reply_markup=Buttons.set_grade)
 
-''' Callback Handlers part '''
-
-'''
-@dp.callback_query_handler(Text(equals('back')), state='*')
-async def go_back(callback_query: types.CallbackQuery, state: FSMContext):
-    if await state.get_state() is not None:
-        state.finish()
-    await callback_query.message.answer(
-        'Повертаємось в головне меню...',
-        reply_markup=Keyboard.home)
-    await callback_query.answer()
-'''
-
 
 @dp.callback_query_handler(state=States.choose_region)
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
@@ -123,22 +109,37 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['spec'] = callback_query.data
     await callback_query.message.edit_text('Рахуємо...')
-    info = Controller.get_chances(
+    info = Controller().get_chances(
         callback_query.from_user.id,
         data['region'],
         data['spec'])
     n = '\n-'
     if info.get('result'):
-        await callback_query.message.edit_text(f'''
-            Ви можете поступити *за бюджетом* до:
-{n.join(info['data']['budget'])}\n*За контрактом* до\
- усiх, де проходите за бюджетом, а також до:
-{n.join(info['data']['contract'])}''',
-        parse_mode=types.ParseMode.MARKDOWN)
+        if info['data']['budget'] and info['data']['contract']:
+            await callback_query.message.edit_text(f'''
+                Ви можете вступити *за бюджетом* до:
+*{n.join(info['data']['budget'])}* \n*За контрактом* до\
+ усiх, де проходите за бюджетом, а також до: 
+*{n.join(info['data']['contract'])}*''',
+            parse_mode=types.ParseMode.MARKDOWN)
+        elif info['data']['contract'] and not info['data']['budget']:
+            await callback_query.message.edit_text(f'''
+                Ви можете вступити *лише за контрактом* до:
+-*{n.join(info['data']['contract'])}*''',
+            parse_mode=types.ParseMode.MARKDOWN)
+        elif info['data']['budget'] and not info['data']['contract']:
+            await callback_query.message.edit_text(f'''
+                Ви можете вступити *за бюджетом та за контрактом* до:
+*{n.join(info['data']['budget'])}*''',
+            parse_mode=types.ParseMode.MARKDOWN)
+        else:
+            await callback_query.message.edit_text(f'''
+                Нажаль ви *не можете вступити* за цiєю спецiальнiстю''',
+            parse_mode=types.ParseMode.MARKDOWN)
     else:
         await callback_query.message.answer(
             f'''Нажаль ви не можете вступити за цiєю спецiальнiстю,\
- бо у вас немає оцiнок з:{n}*{n.join(info['data'])}*{n}Бажаєте додати їх?''',
+ бо у вас немає оцiнок з:{n}*{n.join(info['data'])}*{n.split('-')[0]}Бажаєте додати їх?''',
             parse_mode=types.ParseMode.MARKDOWN,
             reply_markup=Keyboard.choice)
     async with state.proxy() as data:
@@ -167,22 +168,13 @@ async def addicional_zno(message: types.Message, state: FSMContext):
                 if data['subjects']:
                     await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
                 else:
-                    message.answer('Всi оцiнки доданi. Спробуйте ще раз',
+                    await message.answer('Всi оцiнки доданi. Спробуйте ще раз',
                                    reply_markup=Keyboard.home)
-                    await state.finish
+                    await state.finish()
             else:
                 message.answer('Всi оцiнки доданi. Спробуйте ще раз',
                                reply_markup=Keyboard.home)
                 await state.finish()
-
-
-@dp.callback_query_handler(state=States.choice_adding)
-async def addicional_zno(callback_query: types.CallbackQuery, state: FSMContext):
-    if callback_query.data == 'yes':
-
-        await States.add_from.set()
-        print(state.get_state())
-        await callback_query.answer()
 
 
 @dp.callback_query_handler(Text(startswith='set'), state='*')
