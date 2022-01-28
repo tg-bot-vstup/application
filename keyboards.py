@@ -70,6 +70,15 @@ class Buttons():
 
         return select_spec
 
+    def configure_grades(user):
+
+        grades = Controller().ma_balls(user)
+        edit_grades_buttons = set_grade = InlineKeyboardMarkup(row_width=2)
+        for grade in grades:
+            edit_grades_buttons.insert(
+                InlineKeyboardButton(text=grade.zno.name,callback_data=f'set_{grade.zno.id}'))
+        return edit_grades_buttons
+
     znos = Controller.get_znos()
     set_grade = InlineKeyboardMarkup(row_width=2)
     #Getting only zno subjects and attestat
@@ -77,10 +86,3 @@ class Buttons():
         if zno.id <= 9 or zno.id == 14:
             set_grade.insert(InlineKeyboardButton(
                 text=zno.name, callback_data=f'set_{zno.id}'))
-
-    #choice buttons
-    choice = InlineKeyboardMarkup(row_width=2)
-    choice.insert(InlineKeyboardButton(
-        text='Нi', callback_data='no'))
-    choice.insert(InlineKeyboardButton(
-        text='Так', callback_data='yes'))

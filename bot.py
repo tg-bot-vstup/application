@@ -44,8 +44,11 @@ async def get_regions(message: types.Message):
 @dp.message_handler(Text(equals='Мої бали', ignore_case=True), state='*')
 async def get_grades(message: types.Message):
     grades = Controller().ma_balls(message.from_user.id)
-    await message.answer('\n'.join(grades))
-
+    gradez = [str(grade) for grade in grades]
+    n = '\n'
+    await message.answer(f'''{n.join(gradez)}
+Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
+        reply_markup=Buttons.configure_grades(message.from_user.id))
 
 @dp.message_handler(state=States.grade)
 async def get_grades(message: types.Message, state: FSMContext):
@@ -109,7 +112,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['spec'] = callback_query.data
     await callback_query.message.edit_text('Рахуємо...')
-    info = Controller().get_chances(
+    info = Controller.get_chances(
         callback_query.from_user.id,
         data['region'],
         data['spec'])

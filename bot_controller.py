@@ -35,7 +35,7 @@ class Controller():
 
         return [uni for uni in region.university if uni.knowledge_area]
 
-    def get_areas(self):
+    def get_areas():
 
         try:
             areas = session.query(Knowledge_area).distinct(Knowledge_area.name).all()
@@ -46,7 +46,7 @@ class Controller():
             Controller.get_areas()
         return [{'name':area.name,'specs':area.specialities} for area in areas]
 
-    def get_specs(self,area):
+    def get_specs(area):
 
         specs = session.query(Speciality, Knowledge_area).filter(
             Speciality.area_id == Knowledge_area.id,
@@ -60,7 +60,7 @@ class Controller():
         user = self.session.query(Users).filter_by(tg_id=tg_id).first()
         if not user.grades:
             return ['У вас немає оцiнок']
-        return [str(grade) for grade in user.grades]
+        return user.grades
 
     def get_znos():
 
@@ -101,7 +101,7 @@ class Controller():
                 session.commit()
                 return 'Оцiнка оновлена'
 
-    def get_chances(self,tg_id, region, spec):
+    def get_chances(tg_id, region, spec):
 
         user = session.query(Users).filter_by(
             tg_id=tg_id).first()
