@@ -39,9 +39,7 @@ class Controller():
 
         try:
             areas = session.query(Knowledge_area).distinct(Knowledge_area.name).all()
-            print(areas)
         except:
-            print('someshit')
             session.rollback()
             Controller.get_areas()
         return [{'name':area.name,'specs':area.specialities} for area in areas]
@@ -136,7 +134,6 @@ class Controller():
         return {'result': True, 
         'data': {'budget': budg, 'contract': cont}}
 
-    @staticmethod
     def checking(grades, speciality_data):
 
         coefficients = speciality_data.coefficients

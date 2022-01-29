@@ -6,7 +6,7 @@ from bot_controller import Controller
 from keyboards import Keyboard, Buttons
 from states import States
 from dotenv import load_dotenv
-from utils import get_zno
+from utils import get_zno, result_generation
 import os
 from time import sleep
 import asyncio
@@ -44,7 +44,7 @@ async def get_regions(message: types.Message):
 @dp.message_handler(Text(equals='Мої бали', ignore_case=True), state='*')
 async def get_grades(message: types.Message, state=FSMContext):
     if await state.get_state():
-       await state.finish()
+        await state.finish()
     grades = Controller().ma_balls(message.from_user.id)
     gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
@@ -65,7 +65,7 @@ async def get_grades(message: types.Message, state: FSMContext):
             zno_id = Controller.get_zno_id(zno_id)
         try:
             data['grade'] = float(message.text)
-
+            # Validation for recieved grade
             if (data['grade'] >= 100 and data['grade'] <= 200) or data['grade'] == 0:
                 print(data['grade'])
                 await message.answer(Controller.set_grade(
@@ -89,11 +89,12 @@ async def set_grades(message: types.Message, state: FSMContext):
     await message.answer("Оберiть предмет",
                          reply_markup=Buttons.set_grade)
 
+
 @dp.message_handler(state=States.add_from)
 async def addicional_zno(message: types.Message, state: FSMContext):
     '''Offering user to add missing grades for speciality '''
     async with state.proxy() as data:
-        #checking reply from keyboard
+        # checking reply from keyboard
         if message.text == 'Так':
             current_zno = data['subjects'][0]
             await message.answer(f'Введiть оцiнку з {current_zno}')
@@ -101,7 +102,7 @@ async def addicional_zno(message: types.Message, state: FSMContext):
             await message.answer('Повертаємось до головного меню',
                                  reply_markup=Keyboard.home)
             await state.finish()
-        #checking for each subject in subject
+        # checking for each subject in subject
         else:
             if data['subjects']:
                 current_zno = data['subjects'][0]
@@ -112,10 +113,16 @@ async def addicional_zno(message: types.Message, state: FSMContext):
                 if data['subjects']:
                     await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
                 else:
-                    #change state only when user added all grades
-                    await message.answer('Всi оцiнки доданi. Спробуйте ще раз',
-                                         reply_markup=Keyboard.home)
-                    await state.finish()
+                    # change state only when user added all grades
+                    info = Controller.get_chances(
+                        message.from_user.id,
+                        data['region'],
+                        data['spec'])
+                    await message.answer(
+                        result_generation(info),
+                        parse_mode=types.ParseMode.MARKDOWN,
+                        reply_markup=Keyboard.home)
+                await state.finish()
             else:
                 message.answer('Всi оцiнки доданi. Спробуйте ще раз',
                                reply_markup=Keyboard.home)
@@ -124,13 +131,14 @@ async def addicional_zno(message: types.Message, state: FSMContext):
 
 ''' Callback handlers'''
 
+
 @dp.callback_query_handler(state=States.choose_region)
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     print(await state.get_state() is States.choose_region)
     async with state.proxy() as data:
         data['region'] = callback_query.data
     await callback_query.message.edit_text('Зачекайте...')
-    areas = Buttons.areas()  # Var for faster edit after
+    areas = Buttons.areas()  # Var for faster edit later
     await callback_query.message.edit_text('Оберiть галузь знань')
     await callback_query.message.edit_reply_markup(areas)
     await States.choose_spec.set()
@@ -157,27 +165,9 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
         data['spec'])
     n = '\n-'
     if info.get('result'):
-        if info['data']['budget'] and info['data']['contract']:
-            await callback_query.message.edit_text(f'''
-                Ви можете вступити *за бюджетом* до:
-*{n.join(info['data']['budget'])}* \n*За контрактом* до\
- усiх, де проходите за бюджетом, а також до: 
-*{n.join(info['data']['contract'])}*''',
-                                                   parse_mode=types.ParseMode.MARKDOWN)
-        elif info['data']['contract'] and not info['data']['budget']:
-            await callback_query.message.edit_text(f'''
-                Ви можете вступити *лише за контрактом* до:
--*{n.join(info['data']['contract'])}*''',
-                                                   parse_mode=types.ParseMode.MARKDOWN)
-        elif info['data']['budget'] and not info['data']['contract']:
-            await callback_query.message.edit_text(f'''
-                Ви можете вступити *за бюджетом та за контрактом* до:
-*{n.join(info['data']['budget'])}*''',
-                                                   parse_mode=types.ParseMode.MARKDOWN)
-        else:
-            await callback_query.message.edit_text(f'''
-                Нажаль ви *не можете вступити* за цiєю спецiальнiстю''',
-                                                   parse_mode=types.ParseMode.MARKDOWN)
+        await callback_query.message.edit_text(
+            result_generation(info),
+            parse_mode=types.ParseMode.MARKDOWN)
     else:
         await callback_query.message.answer(
             f'''Нажаль ви не можете вступити за цiєю спецiальнiстю,\
