@@ -42,7 +42,9 @@ async def get_regions(message: types.Message):
 
 
 @dp.message_handler(Text(equals='Мої бали', ignore_case=True), state='*')
-async def get_grades(message: types.Message):
+async def get_grades(message: types.Message, state=FSMContext):
+    if await state.get_state():
+       await state.finish()
     grades = Controller().ma_balls(message.from_user.id)
     gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
