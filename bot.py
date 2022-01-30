@@ -163,7 +163,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
         callback_query.from_user.id,
         data['region'],
         data['spec'])
-    n = '\n-'
+    n = '\n• '
     if info.get('result'):
         await callback_query.message.edit_text(
             result_generation(info),
@@ -171,7 +171,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     else:
         await callback_query.message.answer(
             f'''Нажаль ви не можете вступити за цiєю спецiальнiстю,\
- бо у вас немає оцiнок з:{n}*{n.join(info['data'])}*{n.split('-')[0]}Бажаєте додати їх?''',
+ бо у вас немає оцiнок з:{n}*{n.join(info['data'])}*{n.split('•')[0]}Бажаєте додати їх?''',
             parse_mode=types.ParseMode.MARKDOWN,
             reply_markup=Keyboard.choice)
     async with state.proxy() as data:
