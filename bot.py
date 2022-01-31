@@ -67,7 +67,6 @@ async def get_grades(message: types.Message, state: FSMContext):
             data['grade'] = float(message.text)
             # Validation for recieved grade
             if (data['grade'] >= 100 and data['grade'] <= 200) or data['grade'] == 0:
-                print(data['grade'])
                 await message.answer(Controller.set_grade(
                     message.from_user.id, zno_id, data['grade']),
                     reply_markup=Keyboard.home)
@@ -134,7 +133,6 @@ async def addicional_zno(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(state=States.choose_region)
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
-    print(await state.get_state() is States.choose_region)
     async with state.proxy() as data:
         data['region'] = callback_query.data
     await callback_query.message.edit_text('Зачекайте...')
@@ -165,9 +163,16 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
         data['spec'])
     n = '\n• '
     if info.get('result'):
-        await callback_query.message.edit_text(
-            result_generation(info),
-            parse_mode=types.ParseMode.MARKDOWN)
+        if info.get('result') == 'additional':
+            await callback_query.message.answer(f'''
+На жаль у вас немає оцiнки з одного з додаткових предметiв:
+*•{n.join(info['data'])}*{n.split('•')[0]}
+Додайте оцiнку в меню та спробуйте ще раз.''',
+        parse_mode=types.ParseMode.MARKDOWN)
+        else:
+            await callback_query.message.edit_text(
+                result_generation(info),
+                parse_mode=types.ParseMode.MARKDOWN)
     else:
         await callback_query.message.answer(
             f'''Нажаль ви не можете вступити за цiєю спецiальнiстю,\

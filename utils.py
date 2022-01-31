@@ -12,6 +12,12 @@ def get_zno(data, handler_data):
 
 def result_generation(info):
     n = '\n• '
+    if info.get('result') == 'additional':
+        return f'''
+На жаль у вас немає оцiнки з одного з додаткових предметiв:
+*•{n.join(info['data'])}*{n.split('•')[0]}
+Додайте оцiнку в меню та спробуйте ще раз.'''
+
     if info['data']['budget'] and info['data']['contract']:
         return f'''
                 Ви можете вступити *за бюджетом* до:
@@ -31,4 +37,5 @@ def result_generation(info):
 • {n.join(info['data']['budget'])}'''
 
     else:
-        return 'Нажаль ви *не можете вступити* за цiєю спецiальнiстю'
+        return 'Нажаль у вас *недостатньо балiв*\
+ щоб поступити за цiєю спецiальнiстю'

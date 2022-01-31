@@ -6,6 +6,7 @@ Session = sessionmaker(bind=engine)
 
 session = Session()
 
+
 class Controller():
     '''Another class for requests from bot to database'''
 
@@ -38,11 +39,12 @@ class Controller():
     def get_areas():
 
         try:
-            areas = session.query(Knowledge_area).distinct(Knowledge_area.name).all()
+            areas = session.query(Knowledge_area).distinct(
+                Knowledge_area.name).all()
         except:
             session.rollback()
             Controller.get_areas()
-        return [{'name':area.name,'specs':area.specialities} for area in areas]
+        return [{'name': area.name, 'specs': area.specialities} for area in areas]
 
     def get_specs(area):
 
@@ -53,7 +55,7 @@ class Controller():
 
         return specs
 
-    def ma_balls(self,tg_id):
+    def ma_balls(self, tg_id):
 
         user = self.session.query(Users).filter_by(tg_id=tg_id).first()
         if not user.grades:
@@ -94,7 +96,6 @@ class Controller():
                 session.commit()
                 return 'Оцiнка видалена'
             else:
-                print(grade)
                 user_grade.grade = grade
                 session.commit()
                 return 'Оцiнка оновлена'
@@ -112,15 +113,19 @@ class Controller():
             Knowledge_area.university_id == University.id,
             Knowledge_area.id == Speciality.area_id,
             Speciality.name.startswith(spec)).distinct(University.name)
-        good_results = dict()
-
+        additionals = []
+        required = []
         budg = []
         cont = []
         for spec in specialities:
             results = Controller.checking(user_grades, spec.Speciality)
             if results[1]:
-                return {'result': False,
-                        'data': [str(zno) for zno in results[1]]}
+                if results[0] == 'additional':
+                    [additionals.append(zno) for zno in results[1]
+                     if zno not in additionals]
+                else:
+                    [required.append(zno)
+                     for zno in results[1] if zno not in required]
             else:
                 rate = results[0] * spec.Region.region_coefficient
 
@@ -130,9 +135,16 @@ class Controller():
                 if spec.Speciality.average_rate_contract:
                     if rate >= spec.Speciality.average_rate_contract - 10 and spec.University.name not in budg:
                         cont.append(str(spec.University.name))
+        if not budg and not cont:
+            if required:
+                return {'result': False,
+                        'data': list(required)}
+            elif additionals:
+                return{'result': 'additional',
+                       'data': list(additionals)}
 
-        return {'result': True, 
-        'data': {'budget': budg, 'contract': cont}}
+        return {'result': True,
+                'data': {'budget': budg, 'contract': cont}}
 
     def checking(grades, speciality_data):
 
@@ -147,15 +159,17 @@ class Controller():
                     znos.append(zno[0].grade * coef.coefficient)
                     continue
                 else:
-                    invalid_znos.append(coef.zno)
+                    invalid_znos.append(str(coef.zno))
             else:
                 score = [grade for grade in grades if grade.zno_id == coef.zno_id]
                 if score:
                     if score[0].grade >= max_nr:
                         max_nr = score[0].grade * coef.coefficient
 
+        if invalid_znos:
+            return ('invalid', invalid_znos)
         if max_nr == 0:
-            return('ss',[coef.zno for coef in coefficients if not coef.required])
+            return('additional', [str(coef.zno) for coef in coefficients if not coef.required])
         znos.append(max_nr)
         zno_score = sum(znos) * speciality_data.speciality_coefficient
         return (zno_score, invalid_znos)

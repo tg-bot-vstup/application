@@ -64,7 +64,6 @@ class Buttons():
         specialities = Controller.get_specs(area)
 
         for spec in specialities:
-            print(spec[0])
             select_spec.insert(InlineKeyboardButton(
                 text=spec[0].name, callback_data=spec[0].name[:15]))
 
