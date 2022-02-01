@@ -10,6 +10,23 @@ def get_zno(data, handler_data):
                 return subject
 
 
+def validate_grade(grade):
+
+    try:
+        grade = float(grade)
+        
+        if (grade >= 100 and grade <= 200) or grade == 0:
+
+            return True
+
+        else:
+            raise ValueError
+
+    except ValueError:
+
+        return False
+
+
 def result_generation(info):
     n = '\n• '
     if info.get('result') == 'additional':

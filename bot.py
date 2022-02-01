@@ -6,7 +6,7 @@ from bot_controller import Controller
 from keyboards import Keyboard, Buttons
 from states import States
 from dotenv import load_dotenv
-from utils import get_zno, result_generation
+from utils import get_zno, result_generation,validate_grade
 import os
 from time import sleep
 import asyncio
@@ -28,7 +28,9 @@ async def hello(message: types.Message):
 
 
 @dp.message_handler(Text(equals='Назад'), state='*')
-async def hello(message: types.Message):
+async def hello(message: types.Message,state: FSMContext):
+    if state.get_state():
+        state.finish()
     await message.answer('Повертаємось до головного меню',
                          reply_markup=Keyboard.home)
 
@@ -45,7 +47,7 @@ async def get_regions(message: types.Message):
 async def get_grades(message: types.Message, state=FSMContext):
     if await state.get_state():
         await state.finish()
-    grades = Controller().ma_balls(message.from_user.id)
+    grades = Controller.ma_balls(message.from_user.id)
     gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
     await message.answer(f'''{n.join(gradez)}
@@ -63,19 +65,13 @@ async def get_grades(message: types.Message, state: FSMContext):
         state from checking chances'''
         if not zno_id.isdigit():
             zno_id = Controller.get_zno_id(zno_id)
-        try:
+        if validate_grade(message.text):
             data['grade'] = float(message.text)
-            # Validation for recieved grade
-            if (data['grade'] >= 100 and data['grade'] <= 200) or data['grade'] == 0:
-                await message.answer(Controller.set_grade(
+            await message.answer(Controller.set_grade(
                     message.from_user.id, zno_id, data['grade']),
                     reply_markup=Keyboard.home)
-                await state.finish()
-
-            else:
-                raise ValueError
-
-        except ValueError:
+            await state.finish()
+        else:
             await message.answer('Невiрне значення. Спробуйте ще раз.')
 
 
@@ -107,21 +103,24 @@ async def addicional_zno(message: types.Message, state: FSMContext):
                 current_zno = data['subjects'][0]
                 zno_id = Controller.get_zno_id(current_zno)
                 grade = message.text
-                Controller.set_grade(message.from_user.id, zno_id, grade)
-                data['subjects'].remove(current_zno)
-                if data['subjects']:
-                    await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
+                if validate_grade(grade):
+                    (Controller.set_grade(message.from_user.id, zno_id, grade))
+                    data['subjects'].remove(current_zno)
+                    if data['subjects']:
+                        await message.answer(f'Введiть оцiнку з {data["subjects"][0]}')
+                    else:
+                        # change state only when user added all grades
+                        info = Controller.get_chances(
+                            message.from_user.id,
+                            data['region'],
+                            data['spec'])
+                        await message.answer(
+                            result_generation(info),
+                            parse_mode=types.ParseMode.MARKDOWN,
+                            reply_markup=Keyboard.home)
+                        await state.finish()
                 else:
-                    # change state only when user added all grades
-                    info = Controller.get_chances(
-                        message.from_user.id,
-                        data['region'],
-                        data['spec'])
-                    await message.answer(
-                        result_generation(info),
-                        parse_mode=types.ParseMode.MARKDOWN,
-                        reply_markup=Keyboard.home)
-                await state.finish()
+                    await message.answer('Невiрне значення,спробуйте ще раз')
             else:
                 message.answer('Всi оцiнки доданi. Спробуйте ще раз',
                                reply_markup=Keyboard.home)
@@ -168,7 +167,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
 На жаль у вас немає оцiнки з одного з додаткових предметiв:
 *•{n.join(info['data'])}*{n.split('•')[0]}
 Додайте оцiнку в меню та спробуйте ще раз.''',
-        parse_mode=types.ParseMode.MARKDOWN)
+                                                parse_mode=types.ParseMode.MARKDOWN)
         else:
             await callback_query.message.edit_text(
                 result_generation(info),

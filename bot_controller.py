@@ -10,11 +10,7 @@ session = Session()
 class Controller():
     '''Another class for requests from bot to database'''
 
-    def __init__(self):
-
-        self.session = Session()
-
-    def create_user(self, tg_id):
+    def create_user(tg_id):
 
         user = session.query(Users).filter_by(tg_id=tg_id).first()
 
@@ -39,12 +35,13 @@ class Controller():
     def get_areas():
 
         try:
-            areas = session.query(Knowledge_area).distinct(
+            areas = session.query(Knowledge_area.name, Speciality.name).filter(
+                Speciality.area_id == Knowledge_area.id,).distinct(
                 Knowledge_area.name).all()
         except:
             session.rollback()
             Controller.get_areas()
-        return [{'name': area.name, 'specs': area.specialities} for area in areas]
+        return [{'name': area[0], 'specs': area[1]} for area in areas]
 
     def get_specs(area):
 
@@ -55,9 +52,9 @@ class Controller():
 
         return specs
 
-    def ma_balls(self, tg_id):
+    def ma_balls(tg_id):
 
-        user = self.session.query(Users).filter_by(tg_id=tg_id).first()
+        user = session.query(Users).filter_by(tg_id=tg_id).first()
         if not user.grades:
             return ['У вас немає оцiнок']
         return user.grades
@@ -76,17 +73,18 @@ class Controller():
 
     def set_grade(tg_id, zno, grade: int):
         # setting grade for particular user
-
-        user = session.query(Users).filter_by(tg_id=tg_id).first()
+        user_id = session.query(Users.id).filter(
+            Users.tg_id == tg_id).first()[0]
         user_grade = session.query(Grades).filter(
-            Grades.zno_id == zno, Grades.user_id == user.id).first()
+            Grades.zno_id == zno,
+            Grades.user_id == user_id).first()
 
         if not user_grade:
             if grade == 0:
                 return 'У вас немає оцiнки з цього предмету'
             else:
                 user_grade = Grades(
-                    user_id=user.id, grade=grade, zno_id=zno)
+                    user_id=user_id, grade=grade, zno_id=zno)
                 session.add(user_grade)
                 session.commit()
                 return 'Оцiнка додана'
@@ -113,12 +111,15 @@ class Controller():
             Knowledge_area.university_id == University.id,
             Knowledge_area.id == Speciality.area_id,
             Speciality.name.startswith(spec)).distinct(University.name)
+        # lists for final generation response
         additionals = []
         required = []
         budg = []
         cont = []
         for spec in specialities:
             results = Controller.checking(user_grades, spec.Speciality)
+            # Checking if user haven't some required zno
+            # or any not additional
             if results[1]:
                 if results[0] == 'additional':
                     [additionals.append(zno) for zno in results[1]
@@ -135,18 +136,25 @@ class Controller():
                 if spec.Speciality.average_rate_contract:
                     if rate >= spec.Speciality.average_rate_contract - 10 and spec.University.name not in budg:
                         cont.append(str(spec.University.name))
+
+        # Define why user can't go to any university
         if not budg and not cont:
+            # If user haven't required zno
             if required:
                 return {'result': False,
                         'data': list(required)}
+            # If user haven't any additional zno
             elif additionals:
                 return{'result': 'additional',
                        'data': list(additionals)}
-
+        # If user have all znos, but haven't enough score
         return {'result': True,
                 'data': {'budget': budg, 'contract': cont}}
 
     def checking(grades, speciality_data):
+        '''Checking having user all the required grades
+            and any of additional, then calculate maximum
+            additional and returning result'''
 
         coefficients = speciality_data.coefficients
         max_nr = 0
@@ -167,24 +175,12 @@ class Controller():
                         max_nr = score[0].grade * coef.coefficient
 
         if invalid_znos:
+            # Firstly checking if user haven't required znos
             return ('invalid', invalid_znos)
         if max_nr == 0:
+            # Then check if user haven't any additional zno
             return('additional', [str(coef.zno) for coef in coefficients if not coef.required])
         znos.append(max_nr)
         zno_score = sum(znos) * speciality_data.speciality_coefficient
+        # Finally, if user have both, returning result
         return (zno_score, invalid_znos)
-
-
-'''
-areas = session.query(University, Region, Knowledge_area, Speciality).join(
-    University,
-    University.region_id == Region.id).filter(
-    Region.id == 1,
-    Knowledge_area.university_id == University.id,
-    Knowledge_area.id == Speciality.area_id,
-    Speciality.name == "121 Інженерія програмного забезпечення").all()
-
-for i in areas:
-    print(i)
-#    Controller.checking(2,i)
-'''

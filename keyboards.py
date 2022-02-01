@@ -71,7 +71,7 @@ class Buttons():
 
     def configure_grades(user):
 
-        grades = Controller().ma_balls(user)
+        grades = Controller.ma_balls(user)
         edit_grades_buttons = set_grade = InlineKeyboardMarkup(row_width=2)
         for grade in grades:
             edit_grades_buttons.insert(
