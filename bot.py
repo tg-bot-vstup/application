@@ -13,7 +13,6 @@ import asyncio
 
 load_dotenv()
 bot = Bot(token=os.environ.get('TOKEN'))
-db_cont = Controller()
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 ''' Message Handlers '''
@@ -24,7 +23,7 @@ async def hello(message: types.Message):
     await message.answer(
         'Привiт! Цей бот допоможе вам дiзнатись куди ви можете поступити!',
         reply_markup=Keyboard.home)
-    db_cont.create_user(message.from_user.id)
+    Controller.create_user(message.from_user.id)
 
 
 @dp.message_handler(Text(equals='Назад'), state='*')
