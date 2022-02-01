@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 
 from controller import get_all_areas_to_db
 
+
 async def parse_next_update():
     async with aiohttp.ClientSession() as session:
         async with session.get(url="https://vstup.osvita.ua") as response:
@@ -40,6 +41,7 @@ async def update_one_time_for_a_day():
             """
             # await get_all_areas_to_db()
             print("shiiieeeet")
+            print(datetime.date.today())
         pause.until(next_update)
 
 

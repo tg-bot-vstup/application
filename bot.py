@@ -51,7 +51,7 @@ async def get_grades(message: types.Message, state=FSMContext):
     gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
     await message.answer(f'''{n.join(gradez)}
-Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
+    Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
                          reply_markup=Buttons.configure_grades(message.from_user.id))
 
 
@@ -86,7 +86,7 @@ async def set_grades(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=States.add_from)
-async def addicional_zno(message: types.Message, state: FSMContext):
+async def additional_zno(message: types.Message, state: FSMContext):
     '''Offering user to add missing grades for speciality '''
     async with state.proxy() as data:
         # checking reply from keyboard
@@ -122,8 +122,8 @@ async def addicional_zno(message: types.Message, state: FSMContext):
                 else:
                     await message.answer('Невiрне значення,спробуйте ще раз')
             else:
-                message.answer('Всi оцiнки доданi. Спробуйте ще раз',
-                               reply_markup=Keyboard.home)
+                await message.answer('Всi оцiнки доданi. Спробуйте ще раз',
+                                     reply_markup=Keyboard.home)
                 await state.finish()
 
 
