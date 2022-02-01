@@ -41,6 +41,7 @@ class Controller():
         except:
             session.rollback()
             Controller.get_areas()
+        
         return [{'name': area[0], 'specs': area[1]} for area in areas]
 
     def get_specs(area):

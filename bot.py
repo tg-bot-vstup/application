@@ -51,7 +51,7 @@ async def get_grades(message: types.Message, state=FSMContext):
     gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
     await message.answer(f'''{n.join(gradez)}
-    Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
+Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
                          reply_markup=Buttons.configure_grades(message.from_user.id))
 
 

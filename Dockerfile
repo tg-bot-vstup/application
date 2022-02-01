@@ -13,5 +13,5 @@ ENV PYTHONUNBUFFERED 1
 
 COPY requirements.txt /app/requirements.txt
 
-
-CMD ["python","bot.py"]
+CMD ["chmod","+775","starter.sh"]
+CMD ["./starter.sh"]
