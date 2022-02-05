@@ -1,4 +1,4 @@
 #!/bin/bash
 
-python3 bot.py
-python3 auto_db_update.py&
+python3 code/bot.py
+python3 code/auto_db_update.py&
