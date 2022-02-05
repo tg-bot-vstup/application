@@ -56,8 +56,6 @@ class Controller():
     def ma_balls(tg_id):
 
         user = session.query(Users).filter_by(tg_id=tg_id).first()
-        if not user.grades:
-            return ['У вас немає оцiнок']
         return user.grades
 
     def get_znos():

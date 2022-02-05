@@ -47,11 +47,16 @@ async def get_grades(message: types.Message, state=FSMContext):
     if await state.get_state():
         await state.finish()
     grades = Controller.ma_balls(message.from_user.id)
-    gradez = [str(grade) for grade in grades]
     n = '\n'  # variable bcs f-string can't handle backslash
-    await message.answer(f'''{n.join(gradez)}
+    if grades:
+        gradez = [str(grade) for grade in grades]
+       
+        await message.answer(f'''{n.join(gradez)}
 Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
-                         reply_markup=Buttons.configure_grades(message.from_user.id))
+                             reply_markup=Buttons.configure_grades(message.from_user.id))
+    else:
+        await message.answer('У вас немає оцiнок з жодного предмету')
+
 
 
 @dp.message_handler(state=States.grade)
