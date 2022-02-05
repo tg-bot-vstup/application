@@ -4,3 +4,4 @@
 .env
 alembic.ini
 /alembic/
+/code/__pycache__/

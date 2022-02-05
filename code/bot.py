@@ -29,7 +29,7 @@ async def hello(message: types.Message):
 @dp.message_handler(Text(equals='Назад'), state='*')
 async def hello(message: types.Message,state: FSMContext):
     if state.get_state():
-        state.finish()
+        await state.finish()
     await message.answer('Повертаємось до головного меню',
                          reply_markup=Keyboard.home)
 
