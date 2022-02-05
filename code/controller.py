@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from parser import main, get_areas_dict
 from db_models import Zno, Coefficient, Knowledge_area, Speciality, Region, University, engine
 
-session = Session(bind=engine)
+
 
 region_coefficient_dict = {'м. Київ': 1.00,
                            'Донецька область': 1.04,
@@ -101,6 +101,8 @@ specialities_coefficient_dict = {
     "275": 1.02
 }
 
+session = Session(bind=engine)
+
 
 async def get_all_areas_to_db():
     areas = await get_areas_dict()
@@ -110,17 +112,16 @@ async def get_all_areas_to_db():
         for area, area_url in areas.items():
             region = session.query(Region).filter(Region.name == area).first()
             if not region:
-                result_list = await main(area=area, area_url=area_url, request=request)
-                for area, universities_dict in result_list.items():
-                    print(area)
-                    if not region:
-                        region = Region(name=area,
-                                        region_coefficient=region_coefficient_dict[area])
-                        session.add(region)
-                        session.commit()
-                    await get_all_universities_to_db(region, universities_dict)
+                region = Region(name=area,
+                                region_coefficient=region_coefficient_dict[area])
+                session.add(region)
+                session.commit()
+            result_list = await main(area=area, area_url=area_url, request=request)
+            for area, universities_dict in result_list.items():
+                print(area)
+                await get_all_universities_to_db(region, universities_dict)
         await request.close()
-        session.commit()
+
 
 
 async def get_all_universities_to_db(region, universities_dict):
@@ -142,7 +143,9 @@ async def get_all_universities_to_db(region, universities_dict):
                 session.add(university_object)
                 session.commit()
             tasks.append(asyncio.ensure_future(get_all_knowledge_areas_to_db(university_object, departments_dict)))
+    if tasks:
         await asyncio.wait(tasks)
+
 
 
 async def get_all_knowledge_areas_to_db(university, departments_dict):
@@ -219,18 +222,19 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                             speciality_id=speciality_object.id,
                             zno_id=zno.id
                         )
+                        session.add(coefficient_object)
                     coefficient_object.coefficient = float(coefficient)
                     if '*' in subject:
                         coefficient_object.required = False
                     else:
                         coefficient_object.required = True
-                    session.add(coefficient_object)
     session.commit()
 
 
+
 if __name__ == '__main__':
-    # start = datetime.datetime.now()
-    # asyncio.run(get_all_areas_to_db())
-    # print(datetime.datetime.now() - start)
-    a = session.query(University, Knowledge_area).join(University, Knowledge_area.university_id == University.id).filter(University.id == "100").all()
-    print(a)
+    start = datetime.datetime.now()
+    asyncio.run(get_all_areas_to_db())
+    print(datetime.datetime.now() - start)
+    # a = session.query(University, Knowledge_area).join(University, Knowledge_area.university_id == University.id).filter(University.id == "100").all()
+    # print(a)

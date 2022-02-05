@@ -17,7 +17,7 @@ async def get_areas_dict() -> dict:
     Method for parsing all areas and area urls from vstup.osvita.ua
     """
     url = "https://vstup.osvita.ua"
-    async with aiohttp.ClientSession() as request:
+    async with aiohttp.ClientSession(trust_env=True) as request:
         async with request.get(url, headers=headers) as response:
             soup = BeautifulSoup(await response.text(), "lxml")
 
