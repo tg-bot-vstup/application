@@ -69,7 +69,14 @@ async def parse_one_speciality(request, speciality_url):
         try:
             async with request.get(url, headers=headers) as response:
                 speciality = BeautifulSoup(await response.text(), "lxml")
-                link_2020 = speciality.find("table", class_="stats-vnz-table")
+                link_2020_list = speciality.find_all("span", class_="year")
+                link_2020 = 0
+                for i in link_2020_list:
+                    if "2021" in i.text:
+                        link_2020 = i
+                async with request.get("https://vstup.osvita.ua" + link_2020.find("a").get("href"), headers=headers) as response:
+                    speciality_2021 = BeautifulSoup(await response.text(), "lxml")
+                    link_2020 = speciality_2021.find("table", class_="stats-vnz-table")
                 if link_2020:
                     url = "https://vstup.osvita.ua" + link_2020.find("a").get("href")
                     while True:
@@ -182,10 +189,13 @@ async def main(area, area_url, request):
 
 if __name__ == "__main__":
     print("da")
-    # start = datetime.datetime.now()
-    # loop = asyncio.get_event_loop()
-    # print(loop.run_until_complete(main()))
-    # print(datetime.datetime.now() - start)
+    start = datetime.datetime.now()
+    loop = asyncio.get_event_loop()
+    connector = aiohttp.TCPConnector(limit=10, force_close=True)
+    request = aiohttp.ClientSession(connector=connector)
+    print(loop.run_until_complete(parse_one_speciality(request=request, speciality_url="https://vstup.osvita.ua/y2022/r27/183/990603/")))
+    request.close()
+    print(datetime.datetime.now() - start)
 
 """
 result_example = {
