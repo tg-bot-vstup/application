@@ -67,16 +67,16 @@ async def parse_one_speciality(request, speciality_url):
     url = speciality_url
     while True:
         try:
+            # async with request.get(url, headers=headers) as response:
+            #     speciality = BeautifulSoup(await response.text(), "lxml")
+            #     link_2020_list = speciality.find_all("span", class_="year")
+            #     link_2020 = 0
+            #     for i in link_2020_list:
+            #         if "2021" in i.text:
+            #             link_2020 = i
             async with request.get(url, headers=headers) as response:
-                speciality = BeautifulSoup(await response.text(), "lxml")
-                link_2020_list = speciality.find_all("span", class_="year")
-                link_2020 = 0
-                for i in link_2020_list:
-                    if "2021" in i.text:
-                        link_2020 = i
-                async with request.get("https://vstup.osvita.ua" + link_2020.find("a").get("href"), headers=headers) as response:
-                    speciality_2021 = BeautifulSoup(await response.text(), "lxml")
-                    link_2020 = speciality_2021.find("table", class_="stats-vnz-table")
+                speciality_2021 = BeautifulSoup(await response.text(), "lxml")
+                link_2020 = speciality_2021.find("table", class_="stats-vnz-table")
                 if link_2020:
                     url = "https://vstup.osvita.ua" + link_2020.find("a").get("href")
                     while True:
@@ -96,7 +96,6 @@ async def parse_one_speciality(request, speciality_url):
                                             min_budget = info_list[1].text
                                         if info_list[0].text == 'Середній рейтинговий бал зарахованих на контракт':
                                             avg_contract = info_list[1].text
-                                    print(min_budget, avg_contract)
                                     return min_budget, avg_contract
                                 break
                         except SocketError as e:
@@ -121,6 +120,13 @@ async def get_university_department(request, university, university_url: str):
             async with request.get(url, headers=headers) as response:
                 if response:
                     soup = BeautifulSoup(await response.text(), "lxml")
+                    year_urls = soup.find_all("span", class_="year")
+                    url_2021 = 0
+                    for i in year_urls:
+                        if "2021" in i.text:
+                            url_2021 = i
+                    async with request.get("https://vstup.osvita.ua" + url_2021.find("a").get("href"), headers=headers) as response:
+                        soup = BeautifulSoup(await response.text(), "lxml")
                     deps_all = soup.find("div", class_="panel den")
                     if deps_all:
                         deps_all = deps_all.select('div[class*="row no-gutters table-of-specs-item-row qual1 base40"]')
