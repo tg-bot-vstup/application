@@ -182,18 +182,21 @@ async def get_all_specialities_to_db(knowledge_area, specialities_dict):
                 if not speciality_coefficient:
                     speciality_coefficient = 1
                 if not speciality_object:
+                    print(speciality_values)
+                    if speciality_values["old_budget"]:
+                        print(speciality_values["old_budget"])
                     speciality_object = Speciality(
-                        name=speciality_name,
-                        program=speciality_values["program"],
-                        min_rate_budget=speciality_values["old_budget"],
-                        average_rate_contract=speciality_values["old_contract"],
-                        area_id=knowledge_area.id,
-                        faculty=speciality_values["department"],
-                        speciality_coefficient=speciality_coefficient,
                         speciality_url=speciality_values["speciality_url"]
                     )
                     session.add(speciality_object)
                     session.commit()
+                speciality_object.program = speciality_values["program"]
+                speciality_object.min_rate_budget = speciality_values["old_budget"]
+                speciality_object.average_rate_contract = speciality_values["old_contract"]
+                speciality_object.name = speciality_name
+                speciality_object.area_id = knowledge_area.id
+                speciality_object.faculty = speciality_values["department"]
+                speciality_object.speciality_coefficient = speciality_coefficient
                 for subject, coefficient in speciality_values["zno"].items():
                     if "*" in subject:
                         zno = session.query(Zno).filter(Zno.name == subject[:-1]).first()
@@ -236,5 +239,5 @@ if __name__ == '__main__':
     start = datetime.datetime.now()
     asyncio.run(get_all_areas_to_db())
     print(datetime.datetime.now() - start)
-    # a = session.query(University, Knowledge_area).join(University, Knowledge_area.university_id == University.id).filter(University.id == "100").all()
+    # a = session.query(Speciality).filter(Speciality.average_rate_contract.is_not(None)).all()
     # print(a)

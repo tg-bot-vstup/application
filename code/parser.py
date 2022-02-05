@@ -89,6 +89,7 @@ async def parse_one_speciality(request, speciality_url):
                                             min_budget = info_list[1].text
                                         if info_list[0].text == 'Середній рейтинговий бал зарахованих на контракт':
                                             avg_contract = info_list[1].text
+                                    print(min_budget, avg_contract)
                                     return min_budget, avg_contract
                                 break
                         except SocketError as e:
