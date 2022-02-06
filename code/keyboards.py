@@ -60,7 +60,7 @@ class Buttons():
 
     def get_specs(area):
 
-        select_spec = InlineKeyboardMarkup()
+        select_spec = InlineKeyboardMarkup(row_width=1)
         specialities = Controller.get_specs(area)
 
         for spec in specialities:
