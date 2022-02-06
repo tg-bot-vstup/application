@@ -47,15 +47,25 @@ class Buttons():
 
         return select_uni
 
-    def areas():
+    def areas(page):
 
         select_area = InlineKeyboardMarkup(row_width=2)
         areas = Controller.get_areas()
-        for area in areas:
-            if area.get('specs'):
+        areas = [area for area in areas if area.get('specs')]
+        if len(areas) <= page*8+8:
+                for area in areas[page*8:]:
+                    select_area.insert(InlineKeyboardButton(
+                        text=area['name'], callback_data=area['name'][:15]))
+        else:
+            for area in areas[page*8:page*8+8]:
                 select_area.insert(InlineKeyboardButton(
                     text=area['name'], callback_data=area['name'][:15]))
-
+            select_area.insert(InlineKeyboardButton(
+            text='Далi',callback_data=f'page_{page+1}'))
+        if page != 0:
+            select_area.add(InlineKeyboardButton(
+            text='Назад',callback_data=f'page_{page-1}'))
+        
         return select_area
 
     def get_specs(area):

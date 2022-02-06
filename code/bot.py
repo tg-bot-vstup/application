@@ -139,7 +139,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['region'] = callback_query.data
     await callback_query.message.edit_text('Зачекайте...')
-    areas = Buttons.areas()  # Var for faster edit later
+    areas = Buttons.areas(0)  # Var for faster edit later
     await callback_query.message.edit_text('Оберiть галузь знань')
     await callback_query.message.edit_reply_markup(areas)
     await States.choose_spec.set()
@@ -148,11 +148,16 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(state=States.choose_spec)
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
-    await callback_query.message.edit_text('Оберiть Спеціальність')
-    await callback_query.message.edit_reply_markup(
-        Buttons.get_specs(callback_query.data))
-    await States.search.set()
-    await callback_query.answer()
+    if callback_query.data.startswith('page_'):
+        page = callback_query.data.split('_')[1]
+        await callback_query.message.edit_reply_markup(
+            Buttons.areas(int(page)))
+    else:
+        await callback_query.message.edit_text('Оберiть Спеціальність')
+        await callback_query.message.edit_reply_markup(
+            Buttons.get_specs(callback_query.data))
+        await States.search.set()
+        await callback_query.answer()
 
 
 @dp.callback_query_handler(state=States.search)
