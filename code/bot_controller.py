@@ -132,6 +132,10 @@ class Controller():
                 if spec.Speciality.min_rate_budget:
                     if rate >= spec.Speciality.min_rate_budget:
                         budg.append(str(spec.University.name))
+                    elif spec.Speciality.min_rate_budget and not spec.Speciality.average_rate_contract:
+                        if rate >= 110 and spec.University.name not in budg:
+                            cont.append(str(spec.University.name))
+
                 if spec.Speciality.average_rate_contract:
                     if rate >= spec.Speciality.average_rate_contract - 10 and spec.University.name not in budg:
                         cont.append(str(spec.University.name))
