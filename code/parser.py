@@ -63,17 +63,10 @@ async def get_area_universities(request, area_url: str) -> dict:
                 pass
 
 
-async def parse_one_speciality(request, speciality_url):
+async def parse_speciality_grades(request, speciality_url):
     url = speciality_url
     while True:
         try:
-            # async with request.get(url, headers=headers) as response:
-            #     speciality = BeautifulSoup(await response.text(), "lxml")
-            #     link_2020_list = speciality.find_all("span", class_="year")
-            #     link_2020 = 0
-            #     for i in link_2020_list:
-            #         if "2021" in i.text:
-            #             link_2020 = i
             async with request.get(url, headers=headers) as response:
                 speciality_2021 = BeautifulSoup(await response.text(), "lxml")
                 link_2020 = speciality_2021.find("table", class_="stats-vnz-table")
@@ -110,7 +103,40 @@ async def parse_one_speciality(request, speciality_url):
     return None, None
 
 
-async def get_university_department(request, university, university_url: str):
+
+async def parse_ode_department(request, dep):
+    department_dict = {}
+    try:
+        department = dep.text.split("Факультет:")[1]
+        department = department.split('Освітня')[0].strip()
+    except IndexError:
+        department = "-"
+    knowledge_area = dep.text.split("Галузь:")[1].split('Спеціальність')[0].strip()
+    speciality = dep.find("a").text
+    program = dep.text.split("Освітня програма:")[1].split("\n")[0].strip()
+    speciality_url = "https://vstup.osvita.ua" + dep.find("a", class_="green-button").get("href")
+    grades_names = dep.select('div[class*="sub"]')
+    grades_dict = {}
+    for grade in range(0, len(grades_names), 2):
+        name = grades_names[grade].text.split("(")[0].strip()
+        coefficient = grades_names[grade].text.replace(" \n", "").replace(")", "").replace(", ",
+                                                                                           "").replace(
+            "балmin=", "k=").strip().split("k=")[1:3]
+        if len(coefficient) > 1:
+            grades_dict[name] = coefficient[1]
+        else:
+            grades_dict[name] = coefficient[0]
+    department_dict[speciality] = {"zno": grades_dict}
+    min_budget, avg_contract = await parse_speciality_grades(request, speciality_url)
+    department_dict[speciality]["old_budget"] = min_budget
+    department_dict[speciality]["old_contract"] = avg_contract
+    department_dict[speciality]["department"] = department
+    department_dict[speciality]["program"] = program
+    department_dict[speciality]["speciality_url"] = speciality_url
+    department_dict[speciality]["knowledge_area"] = knowledge_area
+    return department_dict
+
+async def get_university_department(request, university_url: str):
     """
     Method that parse every department for one university
     """
@@ -125,15 +151,61 @@ async def get_university_department(request, university, university_url: str):
                     for i in year_urls:
                         if "2021" in i.text:
                             url_2021 = i
-                    async with request.get("https://vstup.osvita.ua" + url_2021.find("a").get("href"), headers=headers) as response:
-                        soup = BeautifulSoup(await response.text(), "lxml")
+                    while True:
+                        try:
+                            async with request.get("https://vstup.osvita.ua" + url_2021.find("a").get("href"), headers=headers) as response:
+                                soup = BeautifulSoup(await response.text(), "lxml")
+                                break
+                        except SocketError as e:
+                            if e.errno != errno.ECONNRESET:
+                                raise e
+                            pass
                     deps_all = soup.find("div", class_="panel den")
                     if deps_all:
                         deps_all = deps_all.select('div[class*="row no-gutters table-of-specs-item-row qual1 base40"]')
                     if deps_all:
-                        departments_dict = {}
-                        counter = 0
-                        for dep in deps_all:
+                        return deps_all
+                break
+        except SocketError as e:
+            if e.errno != errno.ECONNRESET:
+                raise e
+            continue
+    return None, None
+
+
+
+if __name__ == "__main__":
+    print("da")
+    start = datetime.datetime.now()
+    loop = asyncio.get_event_loop()
+    connector = aiohttp.TCPConnector(limit=10, force_close=True)
+    request = aiohttp.ClientSession(connector=connector)
+    print(loop.run_until_complete(
+        parse_speciality_grades(request=request, speciality_url="https://vstup.osvita.ua/y2022/r27/183/990603/")))
+    request.close()
+    print(datetime.datetime.now() - start)
+
+"""
+result_example = {
+                    "[Area]":
+                        {"[University]":
+                            {"[speciality_id]":
+                                {"[Speciality]":
+                                    {"zno":
+                                        {"[subject]":"[coefficient]"},
+                                    "old_contract": "[grade or none]",
+                                    "old_budget": "[grade or none]",
+                                    "knowledge_area": "[name of knowledge_area]",
+                                    "program": "[program name]"
+                                    }
+                                }
+                            }
+                        }
+                 }
+"""
+
+
+"""
                             try:
                                 department = dep.text.split("Факультет:")[1]
                                 department = department.split('Освітня')[0].strip()
@@ -161,63 +233,11 @@ async def get_university_department(request, university, university_url: str):
                             if speciality not in departments_dict[knowledge_area]:
                                 departments_dict[knowledge_area].setdefault(f"speciality{counter}", {})
                                 departments_dict[knowledge_area][f"speciality{counter}"][speciality] = {"zno": grades_dict}
-                            min_budget, avg_contract = await parse_one_speciality(request, speciality_url)
+                            min_budget, avg_contract = await parse_speciality_grades(request, speciality_url)
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality]["old_budget"] = min_budget
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality]["old_contract"] = avg_contract
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality][
                                 "department"] = department
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality]["program"] = program
                             departments_dict[knowledge_area][f"speciality{counter}"][speciality]["speciality_url"] = speciality_url
-                        return (university, departments_dict)
-                break
-        except SocketError as e:
-            if e.errno != errno.ECONNRESET:
-                raise e
-            pass
-    return None, None
-
-
-async def main(area, area_url, request):
-    universities = await get_area_universities(request, area_url)
-    tasks = []
-    uni_dict = {}
-    for university, university_url in universities.items():
-        tasks.append(asyncio.ensure_future(get_university_department(request=request,
-                                                                     university=university,
-                                                                     university_url=university_url)
-                                           ))
-    await asyncio.wait(tasks)
-    for university_dict in await asyncio.gather(*tasks):
-        if university_dict:
-            uni_dict[university_dict[0]] = university_dict[1]
-    return {area: uni_dict}
-
-
-if __name__ == "__main__":
-    print("da")
-    start = datetime.datetime.now()
-    loop = asyncio.get_event_loop()
-    connector = aiohttp.TCPConnector(limit=10, force_close=True)
-    request = aiohttp.ClientSession(connector=connector)
-    print(loop.run_until_complete(parse_one_speciality(request=request, speciality_url="https://vstup.osvita.ua/y2022/r27/183/990603/")))
-    request.close()
-    print(datetime.datetime.now() - start)
-
-"""
-result_example = {
-                    "[Area]":
-                        {"[University]":
-                            {"[speciality_id]":
-                                {"[Speciality]":
-                                    {"zno":
-                                        {"[subject]":"[coefficient]"},
-                                    "old_contract": "[grade or none]",
-                                    "old_budget": "[grade or none]",
-                                    "knowledge_area": "[name of knowledge_area]",
-                                    "program": "[program name]"
-                                    }
-                                }
-                            }
-                        }
-                 }
 """
