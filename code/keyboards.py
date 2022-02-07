@@ -92,6 +92,6 @@ class Buttons():
     set_grade = InlineKeyboardMarkup(row_width=2)
     #Getting only zno subjects and attestat
     for zno in znos:
-        if zno.id <= 9 or zno.id == 14:
+        if zno.id <= 9 or zno.name == "Українська мова":
             set_grade.insert(InlineKeyboardButton(
                 text=zno.name, callback_data=f'set_{zno.id}'))
