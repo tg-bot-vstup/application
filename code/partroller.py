@@ -153,6 +153,7 @@ async def get_areas_dict():
             select_list_areas = select_list_areas.find_all("option")
         if select_list_areas:
             areas_dict = {}
+            tasks = []
             for option in select_list_areas:
                 if option not in areas_dict:
                     option_text = option.text
@@ -163,8 +164,12 @@ async def get_areas_dict():
                             region_id = await create_area(option_text)
                         area_url = f"{url}{option_value}"
                         print(option_text)
-                        await get_area_universities(request=request, area_url=area_url, area_id=region_id)
-
+                        tasks.append(asyncio.ensure_future(
+                            get_area_universities(request=request, area_url=area_url, area_id=region_id)
+                            ))
+                        await asyncio.wait(tasks)
+                        # await get_area_universities(request=request, area_url=area_url, area_id=region_id)
+            await asyncio.wait(tasks)
 
 async def get_university(university, region_id):
     async with async_session() as session:
@@ -220,6 +225,7 @@ async def get_area_universities(request, area_url: str, area_id: str):
                                 university_id = await create_university(university=uni_text, region_id=area_id)
                             university_url = f"{area_url}{uni_url_sized}"
                             print(uni_text)
+                            # await get_university_department(request=request, university_url=university_url, university_id=university_id)
                             tasks.append(asyncio.ensure_future(get_university_department(request=request, university_url=university_url, university_id=university_id)))
                         await asyncio.wait(tasks)
                         break
@@ -337,6 +343,7 @@ async def get_university_department(request, university_url: str, university_id)
                         if deps_all:
                             tasks = []
                             for dep in deps_all:
+                                # await parse_ode_department(request, dep, university_id)
                                 tasks.append(asyncio.ensure_future(parse_ode_department(request, dep, university_id)))
                             await asyncio.wait(tasks)
                         break
@@ -355,6 +362,7 @@ async def get_speciality(speciality_url):
                 speciality_url=speciality_url
             ))
             speciality_object = speciality_object.scalars().first()
+            session.expunge(speciality_object)
             return speciality_object
 
 
@@ -370,12 +378,14 @@ async def create_speciality(speciality_url):
                 ]
             )
             await session.commit()
+            session.expunge(speciality_object)
             return speciality_object
 
 
 async def edit_speciality(speciality_name, speciality_object, min_budget, avg_contract, department, program, knowledge_area_id):
     async with async_session() as session:
         async with session.begin():
+            session.add(speciality_object)
             speciality_index = speciality_name.split(" ")[0]
             speciality_coefficient = specialities_coefficient_dict.get(speciality_index)
             if not speciality_coefficient:
@@ -397,8 +407,6 @@ async def get_zno(subject):
         async with session.begin():
             zno = await session.execute(select(Zno.id).filter(Zno.name == subject))
             zno = zno.scalars().first()
-            if not zno:
-                return None
             return zno
 
 
@@ -427,6 +435,7 @@ async def get_coefficient(speciality_id, zno_id):
                 Coefficient.zno_id == zno_id
             ))
             coefficient_object = coefficient_object.scalars().first()
+            session.expunge(coefficient_object)
             return coefficient_object
 
 
@@ -442,12 +451,15 @@ async def create_coefficient(speciality_id, zno_id):
                     coefficient_object
                 ]
             )
+
+            session.expunge(coefficient_object)
             return coefficient_object
 
 
 async def edit_coefficient(coefficient_object, coefficient, required):
     async with async_session() as session:
         async with session.begin():
+            await session.add(coefficient_object)
             coefficient_object.coefficient = float(coefficient)
             coefficient_object.required = required
             await session.commit()
@@ -474,6 +486,14 @@ async def parse_ode_department(request, dep, university_id):
         speciality_object = await get_speciality(speciality_url)
         if not speciality_object:
             speciality_object = await create_speciality(speciality_url)
+        print(
+            speciality)
+        # print(speciality_object)
+        print(min_budget)
+        print(avg_contract)
+        print(department)
+        print(program)
+        print(knowledge_area_id)
         await edit_speciality(
             speciality_name=speciality,
             speciality_object=speciality_object,
