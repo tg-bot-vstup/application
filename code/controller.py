@@ -102,21 +102,22 @@ specialities_coefficient_dict = {
     "275": 1.02
 }
 
-async_engine = create_async_engine(os.environ.get('DATABASE_URL_ASYNC'), pool_size=10, pool_timeout=300)
+async_engine = create_async_engine(os.environ.get('DATABASE_URL_ASYNC'), pool_size=20, pool_timeout=30)
 async_session = sessionmaker(
     async_engine, expire_on_commit=False, class_=AsyncSession
 )
-session = AsyncSession(async_engine)
+
 
 
 async def get_area(area):
     async with async_session() as session:
         async with session.begin():
-            region = await session.execute(select(Region).filter(Region.name == area))
+            region = await session.execute(select(Region.id).filter(Region.name == area))
             region = region.scalars().first()
             if not region:
                 return None
-            return region.id
+            return region
+
 
 async def create_area(area):
     async with async_session() as session:
@@ -127,25 +128,26 @@ async def create_area(area):
             await session.commit()
             return region.id
 
+
 async def get_all_areas_to_db():
     areas = await get_areas_dict()
     connector = aiohttp.TCPConnector(limit=200, force_close=True)
     request = aiohttp.ClientSession(connector=connector)
-    tasks = []
+    # tasks = []
     if areas:
         for area, area_url in areas.items():
             region_id = await get_area(area)
             if not region_id:
                 region_id = await create_area(area)
-            tasks.append(asyncio.ensure_future(add_all_universities(
-                request,
-                region_id,
-                area_url)))
-            # await add_all_universities(
+            # tasks.append(asyncio.ensure_future(add_all_universities(
             #     request,
             #     region_id,
-            #     area_url)
-        await asyncio.wait(tasks)
+            #     area_url)))
+            await add_all_universities(
+                request,
+                region_id,
+                area_url)
+        # await asyncio.wait(tasks)
     await request.close()
 
 
@@ -154,15 +156,18 @@ async def add_all_universities(request, region_id, area_url):
     tasks = []
     for university, university_url in universities.items():
         # await add_one_university(request=request, region_id=region_id, university=university, university_url=university_url)
-        tasks.append(asyncio.ensure_future(add_one_university(request=request, region_id=region_id, university=university, university_url=university_url)))
+        tasks.append(asyncio.ensure_future(
+            add_one_university(request=request, region_id=region_id, university=university,
+                               university_url=university_url)))
     await asyncio.wait(tasks)
+    print(region_id, "region done")
 
 
 async def get_university(university, region_id):
     async with async_session() as session:
         async with session.begin():
             university_object = await session.execute(select(
-                University
+                University.id
             ).filter(
                 University.name == university,
                 University.region_id == region_id
@@ -170,7 +175,7 @@ async def get_university(university, region_id):
             university_object = university_object.scalars().first()
             if not university_object:
                 return None
-            return university_object.id
+            return university_object
 
 
 async def create_university(university, region_id):
@@ -186,6 +191,7 @@ async def create_university(university, region_id):
                 ]
             )
             await session.commit()
+            university_exp = session.expunge(university_object)
             return university_object.id
 
 
@@ -193,20 +199,20 @@ async def add_one_university(request, region_id, university, university_url):
     university_id = await get_university(university, region_id)
     if not university_id:
         university_id = await create_university(university, region_id)
-    print(university_id)
     await get_deps(request=request, university_id=university_id, university_url=university_url)
 
 
 async def get_knowledge_area(university_id, value):
     async with async_session() as session:
         async with session.begin():
-            knowledge_area = await session.execute(select(Knowledge_area).filter(Knowledge_area.university_id == university_id,
-                                                                                 Knowledge_area.name == value[
-                                                                                     "knowledge_area"]))
+            knowledge_area = await session.execute(
+                select(Knowledge_area.id).filter(Knowledge_area.university_id == university_id,
+                                              Knowledge_area.name == value[
+                                                  "knowledge_area"]))
             knowledge_area = knowledge_area.scalars().first()
             if not knowledge_area:
                 return None
-            return knowledge_area.id
+            return knowledge_area
 
 
 async def create_knowledge_area(university_id, value):
@@ -235,18 +241,13 @@ async def get_deps(request, university_id, university_url):
                 knowledge_area_id = await get_knowledge_area(university_id, value)
                 if not knowledge_area_id:
                     knowledge_area_id = await create_knowledge_area(university_id, value)
-                print(knowledge_area_id)
-                # await get_all_specialities_to_db(
-                #     knowledge_area_id=knowledge_area_id,
-                #     speciality_name=key,
-                #     speciality_values=value)
                 tasks.append(asyncio.ensure_future(get_all_specialities_to_db(
-                                                                              knowledge_area_id=knowledge_area_id,
-                                                                              speciality_name=key,
-                                                                              speciality_values=value)))
+                    knowledge_area_id=knowledge_area_id,
+                    speciality_name=key,
+                    speciality_values=value)))
             if tasks:
                 await asyncio.wait(tasks)
-                print(f"{university_id} is done")
+    print(f"{university_id} university is done")
 
 
 async def get_speciality(speciality_values):
@@ -298,11 +299,11 @@ async def edit_speciality(speciality_name, speciality_object, speciality_values,
 async def get_zno(subject):
     async with async_session() as session:
         async with session.begin():
-            zno = await session.execute(select(Zno).filter(Zno.name == subject))
+            zno = await session.execute(select(Zno.id).filter(Zno.name == subject))
             zno = zno.scalars().first()
             if not zno:
                 return None
-            return zno.id
+            return zno
 
 
 async def create_zno(subject):
@@ -347,6 +348,7 @@ async def create_coefficient(speciality_id, zno_id):
             )
             return coefficient_object
 
+
 async def edit_coefficient(coefficient_object, coefficient, required):
     async with async_session() as session:
         async with session.begin():
@@ -359,7 +361,6 @@ async def get_all_specialities_to_db(knowledge_area_id, speciality_name, special
     speciality_id, speciality_object = await get_speciality(speciality_values)
     if not speciality_id:
         speciality_id, speciality_object = await create_speciality(speciality_values)
-    print(speciality_id)
     await edit_speciality(speciality_name, speciality_object, speciality_values, knowledge_area_id)
     for subject, coefficient in speciality_values["zno"].items():
         if "*" in subject:
@@ -377,7 +378,7 @@ async def get_all_specialities_to_db(knowledge_area_id, speciality_name, special
             await edit_coefficient(coefficient_object, coefficient, False)
         else:
             await edit_coefficient(coefficient_object, coefficient, True)
-    print(f"            {speciality_name} is done")
+
 
 if __name__ == '__main__':
     start = datetime.datetime.now()

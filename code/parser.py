@@ -49,14 +49,16 @@ async def get_area_universities(request, area_url: str) -> dict:
 
                     uni_dict = {}
 
-                    all_uni = soup.find("ul", class_="section-search-result-list").find_all("a")
-                    for uni in all_uni:
-                        uni_text = uni.text
-                        uni_url = f"{uni.get('href')}"
-                        uni_url_sized = f"{uni_url.split('/')[2]}/"
-                        if uni_text not in uni_dict:
-                            uni_dict[uni_text] = f"{area_url}{uni_url_sized}"
-                    return uni_dict
+                    all_uni = soup.find("ul", class_="section-search-result-list")
+                    if all_uni:
+                        all_uni = all_uni.find_all("a")
+                        for uni in all_uni:
+                            uni_text = uni.text
+                            uni_url = f"{uni.get('href')}"
+                            uni_url_sized = f"{uni_url.split('/')[2]}/"
+                            if uni_text not in uni_dict:
+                                uni_dict[uni_text] = f"{area_url}{uni_url_sized}"
+                        return uni_dict
             except SocketError as e:
                 if e.errno != errno.ECONNRESET:
                     raise e
