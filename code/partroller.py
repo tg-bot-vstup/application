@@ -114,7 +114,8 @@ async_session = sessionmaker(async_engine, expire_on_commit=False,
 headers = {
     "User-agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
+        " AppleWebKit/537.36 (KHTML, like Gecko)"
+        " Chrome/97.0.4692.71 Safari/537.36"
 }
 
 
@@ -164,9 +165,15 @@ async def get_areas_dict():
                         region_id = await create_area(option_text)
                     area_url = f"{url}{option_value}"
                     print(option_text)
-                    # tasks.append(asyncio.ensure_future(
-                    #     get_area_universities(request=request, area_url=area_url, area_id=region_id)
-                    #     ))
+                    # tasks.append(
+                    #     asyncio.ensure_future(
+                    #         get_area_universities(
+                    #             request=request,
+                    #             area_url=area_url,
+                    #             area_id=region_id
+                    #         )
+                    #     )
+                    # )
                     await get_area_universities(
                         request=request, area_url=area_url, area_id=region_id
                     )
@@ -260,7 +267,8 @@ async def get_grades(avg_grades):
                 info_list = row.select("td")
                 if (
                         info_list[0].text
-                        == "Мінімальний рейтинговий бал серед зарахованих на бюджет"
+                        == "Мінімальний рейтинговий бал"
+                           " серед зарахованих на бюджет"
                 ):
                     min_budget = info_list[1].text
                 if (
@@ -380,12 +388,17 @@ async def get_university_department(request, university_url: str,
                             deps_all = soup.find("div", class_="panel den")
                             if deps_all:
                                 deps_all = deps_all.select(
-                                    'div[class*="row no-gutters table-of-specs-item-row qual1 base40"]'
+                                    'div[class*="row no-gutters'
+                                    ' table-of-specs-item-row qual1 base40"]'
                                 )
                             if deps_all:
                                 tasks = []
                                 for dep in deps_all:
-                                    # await parse_ode_department(request, dep, university_id)
+                                    # await parse_ode_department(
+                                    #     request,
+                                    #     dep,
+                                    #     university_id
+                                    # )
                                     tasks.append(
                                         asyncio.ensure_future(
                                             parse_ode_department(
