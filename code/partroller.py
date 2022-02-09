@@ -1,4 +1,6 @@
 import os
+
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
@@ -479,7 +481,6 @@ async def parse_ode_department(request, dep, university_id):
     if not knowledge_area_id:
         knowledge_area_id = await create_knowledge_area(university_id, knowledge_area)
     speciality = dep.find("a").text
-    print(speciality)
     program = dep.text.split("Освітня програма:")[1].split("\n")[0].strip()
     url = dep.find("a", class_="green-button").get("href")
     if url:
@@ -506,9 +507,10 @@ async def parse_ode_department(request, dep, university_id):
             correct_name = name
             if "*" in name:
                 correct_name = name[:-1]
-            zno_id = await get_zno(correct_name)
-            if not zno_id:
+            try:
                 zno_id = await create_zno(correct_name)
+            except IntegrityError:
+                zno_id = await get_zno(correct_name)
             coefficient_object = await get_coefficient(speciality_object.id, zno_id)
             if not coefficient_object:
                 coefficient_object = await create_coefficient(speciality_object.id, zno_id)

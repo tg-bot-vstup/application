@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship
 from dotenv import load_dotenv
 import os
 
@@ -22,7 +22,7 @@ class Zno(Base):
     __tablename__ = 'zno'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String)
+    name = Column(String, unique=True)
 
     def __repr__(self):
         return self.name
