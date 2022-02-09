@@ -53,7 +53,7 @@ async def get_grades(message: types.Message, state=FSMContext):
        
         await message.answer(f'''{n.join(gradez)}
 Натиснiть на назву предмету щоб змiнити або видалити оцiнку''',
-                             reply_markup=Buttons.configure_grades(message.from_user.id))
+                             reply_markup=Buttons.configure_grades(message.from_user.id,grades))
     else:
         await message.answer('У вас немає оцiнок з жодного предмету')
 

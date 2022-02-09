@@ -79,19 +79,18 @@ class Buttons():
 
         return select_spec
 
-    def configure_grades(user):
+    def configure_grades(user,grades):
 
-        grades = Controller.ma_balls(user)
-        edit_grades_buttons = set_grade = InlineKeyboardMarkup(row_width=2)
+        #grades = Controller.ma_balls(user)
+        edit_grades_buttons = InlineKeyboardMarkup(row_width=2)
         for grade in grades:
             edit_grades_buttons.insert(
                 InlineKeyboardButton(text=grade.zno.name,callback_data=f'set_{grade.zno.id}'))
         return edit_grades_buttons
 
-    znos = Controller.get_znos()
+    all_zno = Controller.get_znos()
     set_grade = InlineKeyboardMarkup(row_width=2)
     #Getting only zno subjects and attestat
-    for zno in znos:
-        if zno.id <= 9 or zno.name == "Українська мова":
-            set_grade.insert(InlineKeyboardButton(
-                text=zno.name, callback_data=f'set_{zno.id}'))
+    for zno in all_zno:
+        set_grade.insert(InlineKeyboardButton(
+            text=zno[1], callback_data=f'set_{zno[0]}'))
