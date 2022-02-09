@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
-engine = create_engine(os.environ.get('DATABASE_URL'),pool_pre_ping=True)
+db_link = "postgresql+psycopg2:"+os.environ.get('DATABASE_URL')
+engine = create_engine(db_link,pool_pre_ping=True)
 
 Base = declarative_base()
 

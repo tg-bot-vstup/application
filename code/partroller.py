@@ -107,7 +107,8 @@ specialities_coefficient_dict = {
     "275": 1.02
 }
 
-async_engine = create_async_engine(os.environ.get('DATABASE_URL_ASYNC'), pool_size=30, pool_timeout=300)
+db_link = 'postgresql+asyncpg:'+os.environ.get('DATABASE_URL')
+async_engine = create_async_engine(db_link, pool_size=30, pool_timeout=300)
 async_session = sessionmaker(
     async_engine, expire_on_commit=False, class_=AsyncSession
 )
