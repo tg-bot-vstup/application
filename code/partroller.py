@@ -1,46 +1,45 @@
-import os
-
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
-
-from db_models import Zno, Coefficient, Knowledge_area, Speciality, Region, University
-
+import asyncio
 import datetime
 import errno
+import os
 from socket import error as SocketError
 
 import aiohttp
-import asyncio
 from bs4 import BeautifulSoup
+from db_models import (Coefficient, Knowledge_area, Region, Speciality,
+                       University, Zno)
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.future import select
+from sqlalchemy.orm import sessionmaker
 
-region_coefficient_dict = {'м. Київ': 1.00,
-                           'Донецька область': 1.04,
-                           'Луганська область': 1.04,
-                           'Кіровоградська область': 1.04,
-                           'Миколаївська область': 1.04,
-                           'Рівненська область': 1.04,
-                           'Сумська область': 1.04,
-                           'Херсонська область': 1.04,
-                           'Житомирська область': 1.04,
-                           'Черкаська область': 1.04,
-                           'Чернігівська область': 1.04,
-                           'Івано-Франківська область': 1.02,
-                           'Вінницька область': 1.02,
-                           'Волинська область': 1.02,
-                           'Дніпропетровська область': 1.02,
-                           'Закарпатська область': 1.02,
-                           'Запорізька область': 1.02,
-                           'Київська область': 1.00,
-                           'Львівська область': 1.02,
-                           'Одеська область': 1.02,
-                           'Полтавська область': 1.02,
-                           'Тернопільська область': 1.02,
-                           'Харківська область': 1.02,
-                           'Хмельницька область': 1.02,
-                           'Чернівецька область': 1.02
-                           }
+region_coefficient_dict = {
+    "м. Київ": 1.00,
+    "Донецька область": 1.04,
+    "Луганська область": 1.04,
+    "Кіровоградська область": 1.04,
+    "Миколаївська область": 1.04,
+    "Рівненська область": 1.04,
+    "Сумська область": 1.04,
+    "Херсонська область": 1.04,
+    "Житомирська область": 1.04,
+    "Черкаська область": 1.04,
+    "Чернігівська область": 1.04,
+    "Івано-Франківська область": 1.02,
+    "Вінницька область": 1.02,
+    "Волинська область": 1.02,
+    "Дніпропетровська область": 1.02,
+    "Закарпатська область": 1.02,
+    "Запорізька область": 1.02,
+    "Київська область": 1.00,
+    "Львівська область": 1.02,
+    "Одеська область": 1.02,
+    "Полтавська область": 1.02,
+    "Тернопільська область": 1.02,
+    "Харківська область": 1.02,
+    "Хмельницька область": 1.02,
+    "Чернівецька область": 1.02,
+}
 
 specialities_coefficient_dict = {
     "012": 1.02,
@@ -104,25 +103,27 @@ specialities_coefficient_dict = {
     "272": 1.02,
     "273": 1.02,
     "274": 1.02,
-    "275": 1.02
+    "275": 1.02,
 }
 
-db_link = 'postgresql+asyncpg:'+os.environ.get('DATABASE_URL')
+db_link = "postgresql+asyncpg:" + os.environ.get("DATABASE_URL")
 async_engine = create_async_engine(db_link, pool_size=30, pool_timeout=300)
-async_session = sessionmaker(
-    async_engine, expire_on_commit=False, class_=AsyncSession
-)
+async_session = sessionmaker(async_engine, expire_on_commit=False,
+                             class_=AsyncSession)
 
 headers = {
-    "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-                  " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
+    "User-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 }
 
 
 async def get_area(area):
     async with async_session() as session:
         async with session.begin():
-            region = await session.execute(select(Region.id).filter(Region.name == area))
+            region = await session.execute(
+                select(Region.id).filter(Region.name == area)
+            )
             region = region.scalars().first()
             if not region:
                 return None
@@ -153,7 +154,7 @@ async def get_areas_dict():
         if select_list_areas:
             select_list_areas = select_list_areas.find_all("option")
         if select_list_areas:
-            tasks = []
+            # tasks = []
             for option in select_list_areas:
                 option_text = option.text
                 option_value = option.get("value")
@@ -166,19 +167,22 @@ async def get_areas_dict():
                     # tasks.append(asyncio.ensure_future(
                     #     get_area_universities(request=request, area_url=area_url, area_id=region_id)
                     #     ))
-                    await get_area_universities(request=request, area_url=area_url, area_id=region_id)
+                    await get_area_universities(
+                        request=request, area_url=area_url, area_id=region_id
+                    )
             # await asyncio.wait(tasks)
     await request.close()
+
 
 async def get_university(university, region_id):
     async with async_session() as session:
         async with session.begin():
-            university_object = await session.execute(select(
-                University.id
-            ).filter(
-                University.name == university,
-                University.region_id == region_id
-            ))
+            university_object = await session.execute(
+                select(University.id).filter(
+                    University.name == university,
+                    University.region_id == region_id
+                )
+            )
             university_object = university_object.scalars().first()
             if not university_object:
                 return None
@@ -188,15 +192,9 @@ async def get_university(university, region_id):
 async def create_university(university, region_id):
     async with async_session() as session:
         async with session.begin():
-            university_object = University(
-                name=university,
-                region_id=region_id
-            )
-            session.add_all(
-                [
-                    university_object
-                ]
-            )
+            university_object = University(name=university,
+                                           region_id=region_id)
+            session.add_all([university_object])
             await session.commit()
             return university_object.id
 
@@ -211,22 +209,39 @@ async def get_area_universities(request, area_url: str, area_id: str):
                 async with request.get(area_url, headers=headers) as response:
                     soup = BeautifulSoup(await response.text(), "lxml")
 
-                    all_uni = soup.find("ul", class_="section-search-result-list")
+                    all_uni = soup.find("ul",
+                                        class_="section-search-result-list")
                     if all_uni:
                         all_uni = all_uni.find_all("a")
-                        tasks = []
+                        # tasks = []
                         if all_uni:
                             for uni in all_uni:
                                 uni_text = uni.text
                                 uni_url = f"{uni.get('href')}"
                                 uni_url_sized = f"{uni_url.split('/')[2]}/"
-                                university_id = await get_university(uni_text, region_id=area_id)
+                                university_id = await get_university(
+                                    uni_text, region_id=area_id
+                                )
                                 if not university_id:
-                                    university_id = await create_university(university=uni_text, region_id=area_id)
+                                    university_id = await create_university(
+                                        university=uni_text, region_id=area_id
+                                    )
                                 university_url = f"{area_url}{uni_url_sized}"
                                 print(uni_text)
-                                await get_university_department(request=request, university_url=university_url, university_id=university_id)
-                            #     tasks.append(asyncio.ensure_future(get_university_department(request=request, university_url=university_url, university_id=university_id)))
+                                await get_university_department(
+                                    request=request,
+                                    university_url=university_url,
+                                    university_id=university_id,
+                                )
+                                # tasks.append(
+                                #     asyncio.ensure_future(
+                                #         get_university_department(
+                                #             request=request,
+                                #             university_url=university_url,
+                                #             university_id=university_id
+                                #         )
+                                #     )
+                                # )
                             # await asyncio.wait(tasks)
                             break
             except SocketError as e:
@@ -237,19 +252,25 @@ async def get_area_universities(request, area_url: str, area_id: str):
 
 async def get_grades(avg_grades):
     if avg_grades:
-        avg_grades = avg_grades.select('tr')
+        avg_grades = avg_grades.select("tr")
         if avg_grades:
             min_budget = None
             avg_contract = None
             for row in avg_grades:
                 info_list = row.select("td")
-                if info_list[
-                    0].text == "Мінімальний рейтинговий бал серед зарахованих на бюджет":
+                if (
+                        info_list[0].text
+                        == "Мінімальний рейтинговий бал серед зарахованих на бюджет"
+                ):
                     min_budget = info_list[1].text
-                if info_list[0].text == 'Середній рейтинговий бал зарахованих на контракт':
+                if (
+                        info_list[0].text
+                        == "Середній рейтинговий бал зарахованих на контракт"
+                ):
                     avg_contract = info_list[1].text
             return min_budget, avg_contract
     return None, None
+
 
 async def parse_speciality_grades(request, speciality_url):
     url = speciality_url
@@ -257,11 +278,13 @@ async def parse_speciality_grades(request, speciality_url):
         try:
             async with request.get(url, headers=headers) as response:
                 speciality_2021 = BeautifulSoup(await response.text(), "lxml")
-                avg_grades = speciality_2021.find("table", class_="stats-vnz-table")
+                avg_grades = speciality_2021.find("table",
+                                                  class_="stats-vnz-table")
                 min_budget, avg_contract = await get_grades(avg_grades)
                 if min_budget or avg_contract:
                     return min_budget, avg_contract
-                link_2020 = speciality_2021.find("table", class_="stats-vnz-table")
+                link_2020 = speciality_2021.find("table",
+                                                 class_="stats-vnz-table")
                 if link_2020:
                     if link_2020.find("a"):
                         url = link_2020.find("a")
@@ -271,10 +294,19 @@ async def parse_speciality_grades(request, speciality_url):
                                 url = "https://vstup.osvita.ua" + url
                                 while True:
                                     try:
-                                        async with request.get(url, headers=headers) as response:
-                                            speciality_2020 = BeautifulSoup(await response.text(), "lxml")
-                                            avg_grades = speciality_2020.find("table", class_="stats-vnz-table")
-                                            min_budget, avg_contract = await get_grades(avg_grades)
+                                        async with request.get(
+                                                url, headers=headers
+                                        ) as response_1:
+                                            speciality_2020 = BeautifulSoup(
+                                                await response_1.text(), "lxml"
+                                            )
+                                            avg_grades = speciality_2020.find(
+                                                "table",
+                                                class_="stats-vnz-table"
+                                            )
+                                            min_budget, avg_contract = await get_grades(
+                                                avg_grades
+                                            )
                                             return min_budget, avg_contract
                                     except SocketError as e:
                                         if e.errno != errno.ECONNRESET:
@@ -288,14 +320,15 @@ async def parse_speciality_grades(request, speciality_url):
     return None, None
 
 
-
 async def get_knowledge_area(university_id, knowledge_area):
     async with async_session() as session:
         async with session.begin():
             knowledge_area = await session.execute(
-                select(Knowledge_area.id).filter(Knowledge_area.university_id == university_id,
-                                              Knowledge_area.name == knowledge_area
-                                                 ))
+                select(Knowledge_area.id).filter(
+                    Knowledge_area.university_id == university_id,
+                    Knowledge_area.name == knowledge_area,
+                )
+            )
             knowledge_area = knowledge_area.scalars().first()
             if not knowledge_area:
                 return None
@@ -306,19 +339,15 @@ async def create_knowledge_area(university_id, knowledge_area):
     async with async_session() as session:
         async with session.begin():
             knowledge_area = Knowledge_area(
-                university_id=university_id,
-                name=knowledge_area
+                university_id=university_id, name=knowledge_area
             )
-            session.add_all(
-                [
-                    knowledge_area
-                ]
-            )
+            session.add_all([knowledge_area])
             await session.commit()
             return knowledge_area.id
 
 
-async def get_university_department(request, university_url: str, university_id):
+async def get_university_department(request, university_url: str,
+                                    university_id):
     """
     Method that parse every department for one university
     """
@@ -336,8 +365,13 @@ async def get_university_department(request, university_url: str, university_id)
                             url = url.get("href")
                             while True:
                                 try:
-                                    async with request.get("https://vstup.osvita.ua" + url, headers=headers) as response:
-                                        soup = BeautifulSoup(await response.text(), "lxml")
+                                    async with request.get(
+                                            "https://vstup.osvita.ua" + url,
+                                            headers=headers
+                                    ) as response:
+                                        soup = BeautifulSoup(
+                                            await response.text(), "lxml"
+                                        )
                                         break
                                 except SocketError as e:
                                     if e.errno != errno.ECONNRESET:
@@ -345,12 +379,20 @@ async def get_university_department(request, university_url: str, university_id)
                                     pass
                             deps_all = soup.find("div", class_="panel den")
                             if deps_all:
-                                deps_all = deps_all.select('div[class*="row no-gutters table-of-specs-item-row qual1 base40"]')
+                                deps_all = deps_all.select(
+                                    'div[class*="row no-gutters table-of-specs-item-row qual1 base40"]'
+                                )
                             if deps_all:
                                 tasks = []
                                 for dep in deps_all:
                                     # await parse_ode_department(request, dep, university_id)
-                                    tasks.append(asyncio.ensure_future(parse_ode_department(request, dep, university_id)))
+                                    tasks.append(
+                                        asyncio.ensure_future(
+                                            parse_ode_department(
+                                                request, dep, university_id
+                                            )
+                                        )
+                                    )
                                 await asyncio.wait(tasks)
                 break
         except SocketError as e:
@@ -362,9 +404,9 @@ async def get_university_department(request, university_url: str, university_id)
 async def get_speciality(speciality_url):
     async with async_session() as session:
         async with session.begin():
-            speciality_object = await session.execute(select(Speciality).filter_by(
-                speciality_url=speciality_url
-            ))
+            speciality_object = await session.execute(
+                select(Speciality).filter_by(speciality_url=speciality_url)
+            )
             speciality_object = speciality_object.scalars().first()
             if speciality_object:
                 session.expunge(speciality_object)
@@ -374,25 +416,28 @@ async def get_speciality(speciality_url):
 async def create_speciality(speciality_url):
     async with async_session() as session:
         async with session.begin():
-            speciality_object = Speciality(
-                speciality_url=speciality_url
-            )
-            session.add_all(
-                [
-                    speciality_object
-                ]
-            )
+            speciality_object = Speciality(speciality_url=speciality_url)
+            session.add_all([speciality_object])
             await session.commit()
             session.expunge(speciality_object)
             return speciality_object
 
 
-async def edit_speciality(speciality_name, speciality_object, min_budget, avg_contract, department, program, knowledge_area_id):
+async def edit_speciality(
+        speciality_name,
+        speciality_object,
+        min_budget,
+        avg_contract,
+        department,
+        program,
+        knowledge_area_id,
+):
     async with async_session() as session:
         async with session.begin():
             session.add(speciality_object)
             speciality_index = speciality_name.split(" ")[0]
-            speciality_coefficient = specialities_coefficient_dict.get(speciality_index)
+            speciality_coefficient = specialities_coefficient_dict.get(
+                speciality_index)
             if not speciality_coefficient:
                 speciality_coefficient = 1
             speciality_object.program = program
@@ -410,7 +455,8 @@ async def edit_speciality(speciality_name, speciality_object, min_budget, avg_co
 async def get_zno(subject):
     async with async_session() as session:
         async with session.begin():
-            zno = await session.execute(select(Zno.id).filter(Zno.name == subject))
+            zno = await session.execute(
+                select(Zno.id).filter(Zno.name == subject))
             zno = zno.scalars().first()
             return zno
 
@@ -418,14 +464,8 @@ async def get_zno(subject):
 async def create_zno(subject):
     async with async_session() as session:
         async with session.begin():
-            zno = Zno(
-                name=subject
-            )
-            session.add_all(
-                [
-                    zno
-                ]
-            )
+            zno = Zno(name=subject)
+            session.add_all([zno])
             await session.commit()
             return zno.id
 
@@ -433,12 +473,12 @@ async def create_zno(subject):
 async def get_coefficient(speciality_id, zno_id):
     async with async_session() as session:
         async with session.begin():
-            coefficient_object = await session.execute(select(
-                Coefficient
-            ).filter(
-                Coefficient.speciality_id == speciality_id,
-                Coefficient.zno_id == zno_id
-            ))
+            coefficient_object = await session.execute(
+                select(Coefficient).filter(
+                    Coefficient.speciality_id == speciality_id,
+                    Coefficient.zno_id == zno_id,
+                )
+            )
             coefficient_object = coefficient_object.scalars().first()
             if coefficient_object:
                 session.expunge(coefficient_object)
@@ -448,15 +488,9 @@ async def get_coefficient(speciality_id, zno_id):
 async def create_coefficient(speciality_id, zno_id):
     async with async_session() as session:
         async with session.begin():
-            coefficient_object = Coefficient(
-                speciality_id=speciality_id,
-                zno_id=zno_id
-            )
-            session.add_all(
-                [
-                    coefficient_object
-                ]
-            )
+            coefficient_object = Coefficient(speciality_id=speciality_id,
+                                             zno_id=zno_id)
+            session.add_all([coefficient_object])
 
             session.expunge(coefficient_object)
             return coefficient_object
@@ -474,20 +508,24 @@ async def edit_coefficient(coefficient_object, coefficient, required):
 async def parse_ode_department(request, dep, university_id):
     try:
         department = dep.text.split("Факультет:")[1]
-        department = department.split('Освітня')[0].strip()
+        department = department.split("Освітня")[0].strip()
     except IndexError:
         department = "-"
-    knowledge_area = dep.text.split("Галузь:")[1].split('Спеціальність')[0].strip()
+    knowledge_area = dep.text.split("Галузь:")[1].split("Спеціальність")[
+        0].strip()
     knowledge_area_id = await get_knowledge_area(university_id, knowledge_area)
     if not knowledge_area_id:
-        knowledge_area_id = await create_knowledge_area(university_id, knowledge_area)
+        knowledge_area_id = await create_knowledge_area(university_id,
+                                                        knowledge_area)
     speciality = dep.find("a").text
     program = dep.text.split("Освітня програма:")[1].split("\n")[0].strip()
     url = dep.find("a", class_="green-button").get("href")
     if url:
         speciality_url = "https://vstup.osvita.ua" + url
         grades_names = dep.select('div[class*="sub"]')
-        min_budget, avg_contract = await parse_speciality_grades(request, speciality_url)
+        min_budget, avg_contract = await parse_speciality_grades(
+            request, speciality_url
+        )
         speciality_object = await get_speciality(speciality_url)
         if not speciality_object:
             speciality_object = await create_speciality(speciality_url)
@@ -498,13 +536,19 @@ async def parse_ode_department(request, dep, university_id):
             avg_contract=avg_contract,
             department=department,
             program=program,
-            knowledge_area_id=knowledge_area_id
+            knowledge_area_id=knowledge_area_id,
         )
         for grade in range(0, len(grades_names), 2):
             name = grades_names[grade].text.split("(")[0].strip()
-            coefficient = grades_names[grade].text.replace(" \n", "").replace(")", "").replace(", ",
-                                                                                               "").replace(
-                "балmin=", "k=").strip().split("k=")[1:3]
+            coefficient = (
+                grades_names[grade]
+                    .text.replace(" \n", "")
+                    .replace(")", "")
+                    .replace(", ", "")
+                    .replace("балmin=", "k=")
+                    .strip()
+                    .split("k=")[1:3]
+            )
             correct_name = name
             if "*" in name:
                 correct_name = name[:-1]
@@ -512,9 +556,12 @@ async def parse_ode_department(request, dep, university_id):
                 zno_id = await create_zno(correct_name)
             except IntegrityError:
                 zno_id = await get_zno(correct_name)
-            coefficient_object = await get_coefficient(speciality_object.id, zno_id)
+            coefficient_object = await get_coefficient(speciality_object.id,
+                                                       zno_id)
             if not coefficient_object:
-                coefficient_object = await create_coefficient(speciality_object.id, zno_id)
+                coefficient_object = await create_coefficient(
+                    speciality_object.id, zno_id
+                )
             required = True
             if "*" in name:
                 required = False
@@ -523,10 +570,11 @@ async def parse_ode_department(request, dep, university_id):
             else:
                 coefficient_value = coefficient[0]
 
-            await edit_coefficient(coefficient_object, coefficient_value, required)
+            await edit_coefficient(coefficient_object, coefficient_value,
+                                   required)
 
 
 if __name__ == "__main__":
     start = datetime.datetime.now()
     asyncio.run(get_areas_dict())
-    print(datetime.datetime.now()-start)
+    print(datetime.datetime.now() - start)
