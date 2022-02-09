@@ -225,9 +225,9 @@ async def get_area_universities(request, area_url: str, area_id: str):
                                     university_id = await create_university(university=uni_text, region_id=area_id)
                                 university_url = f"{area_url}{uni_url_sized}"
                                 print(uni_text)
-                                # await get_university_department(request=request, university_url=university_url, university_id=university_id)
-                                tasks.append(asyncio.ensure_future(get_university_department(request=request, university_url=university_url, university_id=university_id)))
-                            await asyncio.wait(tasks)
+                                await get_university_department(request=request, university_url=university_url, university_id=university_id)
+                            #     tasks.append(asyncio.ensure_future(get_university_department(request=request, university_url=university_url, university_id=university_id)))
+                            # await asyncio.wait(tasks)
                             break
             except SocketError as e:
                 if e.errno != errno.ECONNRESET:
