@@ -6,8 +6,7 @@ import asyncio
 
 from bs4 import BeautifulSoup
 
-from controller import get_all_areas_to_db
-import db_models
+from partroller import get_areas_dict
 
 async def parse_next_update():
     async with aiohttp.ClientSession() as session:
@@ -28,7 +27,7 @@ async def update_one_time_for_a_day():
     while True:
         print('Update started')
         next_update = await parse_next_update()
-        await get_all_areas_to_db()
+        await get_areas_dict()
         pause.until(next_update)
 
 
