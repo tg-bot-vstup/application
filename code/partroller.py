@@ -241,7 +241,7 @@ async def get_region_universities(
             all_uni = soup.find("ul", class_="section-search-result-list")
             if all_uni:
                 all_uni = all_uni.find_all("a")
-                tasks = []
+                # tasks = []
                 if all_uni:
                     for uni in all_uni:
                         uni_text = uni.text
