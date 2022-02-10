@@ -12,7 +12,3 @@ Abit Helper bot it is a bot that will help applicants to know where they can to 
 - Choose region <br> ![choose 1 of regions](https://i.imgur.com/4tqeg85.png)
 - Choose knowledge area <br> ![Choose 1 knowledge area](https://i.imgur.com/JAXtUY4.png)
 - Choose speciality and get results <br> ![choosing 1 speciality and getting list of universities](https://i.imgur.com/2UP5I7J.png) ![result](https://i.imgur.com/SzW1bNp.png)
-<<<<<<< HEAD
-
-=======
->>>>>>> parser
