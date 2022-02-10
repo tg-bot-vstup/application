@@ -1,5 +1,6 @@
 from db_models import *
 from time import time
+from utils import default_znos
 
 Session = sessionmaker(bind=engine)
 
@@ -60,15 +61,15 @@ class Controller():
 
     def get_znos():
 
-        znos = session.query(Zno).all()
+        znos = session.query(Zno.id,Zno.name).filter(Zno.name.in_(default_znos)).all()
 
         return znos
 
     def get_zno_id(name):
 
-        zno = session.query(Zno).filter_by(name=name).first()
+        zno = session.query(Zno.id).filter(Zno.name==name).first()[0]
 
-        return zno.id
+        return zno
 
     def set_grade(tg_id, zno, grade: int):
         # setting grade for particular user
