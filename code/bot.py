@@ -1,6 +1,4 @@
-import asyncio
 import os
-from time import sleep
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -29,7 +27,7 @@ async def hello(message: types.Message):
 
 
 @dp.message_handler(Text(equals="Назад"), state="*")
-async def hello(message: types.Message, state: FSMContext):
+async def main_menu(message: types.Message, state: FSMContext):
     if await state.get_state():
         await state.finish()
     await message.answer("Повертаємось до головного меню", reply_markup=Keyboard.home)
@@ -54,14 +52,15 @@ async def get_grades(message: types.Message, state=FSMContext):
         await message.answer(
             f"""{n.join(gradez)}
 Натиснiть на назву предмету щоб змiнити або видалити оцiнку""",
-            reply_markup=Buttons.configure_grades(message.from_user.id, grades),
+            reply_markup=Buttons.configure_grades(
+                message.from_user.id, grades),
         )
     else:
         await message.answer("У вас немає оцiнок з жодного предмету")
 
 
 @dp.message_handler(state=States.grade)
-async def get_grades(message: types.Message, state: FSMContext):
+async def set_grades(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
         zno_id = data["zno_id"]
@@ -73,7 +72,8 @@ async def get_grades(message: types.Message, state: FSMContext):
         if validate_grade(message.text):
             data["grade"] = float(message.text)
             await message.answer(
-                Controller.set_grade(message.from_user.id, zno_id, data["grade"]),
+                Controller.set_grade(message.from_user.id,
+                                     zno_id, data["grade"]),
                 reply_markup=Keyboard.home,
             )
             await state.finish()
@@ -82,7 +82,7 @@ async def get_grades(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(Text(equals="Додати оцiнки ЗНО", ignore_case=True), state="*")
-async def set_grades(message: types.Message, state: FSMContext):
+async def add_grades(message: types.Message, state: FSMContext):
     # checking current state and finish it
 
     if await state.get_state() is not None:
@@ -129,7 +129,8 @@ async def additional_zno(message: types.Message, state: FSMContext):
                     await message.answer("Невiрне значення,спробуйте ще раз")
             else:
                 await message.answer(
-                    "Всi оцiнки доданi. Спробуйте ще раз", reply_markup=Keyboard.home
+                    "Всi оцiнки доданi. Спробуйте ще раз",
+                    reply_markup=Keyboard.home
                 )
                 await state.finish()
 
@@ -141,16 +142,14 @@ async def additional_zno(message: types.Message, state: FSMContext):
 async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data["region"] = callback_query.data
-    await callback_query.message.edit_text("Зачекайте...")
-    areas = Buttons.areas(0)  # Var for faster edit later
     await callback_query.message.edit_text("Оберiть галузь знань")
-    await callback_query.message.edit_reply_markup(areas)
+    await callback_query.message.edit_reply_markup(Buttons.areas(0))
     await States.choose_spec.set()
     await callback_query.answer()
 
 
 @dp.callback_query_handler(state=States.choose_spec)
-async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
+async def choose_speciality(callback_query: types.CallbackQuery, state: FSMContext):
     if callback_query.data.startswith("page_"):
         page = callback_query.data.split("_")[1]
         await callback_query.message.edit_reply_markup(Buttons.areas(int(page)))
@@ -164,7 +163,7 @@ async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(state=States.search)
-async def choose_area(callback_query: types.CallbackQuery, state: FSMContext):
+async def calculate(callback_query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data["spec"] = callback_query.data
     await callback_query.message.edit_text("Рахуємо...")

@@ -1,5 +1,3 @@
-from time import time
-
 from db_models import *
 from utils import default_znos
 
