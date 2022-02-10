@@ -1,7 +1,9 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+
 class States(StatesGroup):
-    ''' States of bot '''
+    """States of bot"""
+
     grade = State()
     choose_area = State()
     choose_spec = State()
