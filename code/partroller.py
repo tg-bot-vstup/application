@@ -256,21 +256,21 @@ async def get_region_universities(
                             )
                         university_url = f"{region_url}{uni_url_sized}"
                         print(uni_text)
-                        # await get_university_department(
-                        #     request=request,
-                        #     university_url=university_url,
-                        #     university_id=university_id,
-                        # )
-                        tasks.append(
-                            asyncio.ensure_future(
-                                get_university_department(
-                                    request=request,
-                                    university_url=university_url,
-                                    university_id=university_id
-                                )
-                            )
+                        await get_university_department(
+                            request=request,
+                            university_url=university_url,
+                            university_id=university_id,
                         )
-                    await asyncio.wait(tasks)
+                    #     tasks.append(
+                    #         asyncio.ensure_future(
+                    #             get_university_department(
+                    #                 request=request,
+                    #                 university_url=university_url,
+                    #                 university_id=university_id
+                    #             )
+                    #         )
+                    #     )
+                    # await asyncio.wait(tasks)
                     break
 
 
