@@ -280,6 +280,7 @@ async def create_region(region_name: str):
             )
             session.add(region)
             await session.commit()
+            print(region.id)
             return region.id
 
 

@@ -111,5 +111,4 @@ class University(Base):
     def __repr__(self):
         return self.name
 
-Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
