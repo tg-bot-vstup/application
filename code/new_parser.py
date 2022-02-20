@@ -461,10 +461,9 @@ async def get_university_department(
     Method that parse every speciality for one university
     and add knowledge areas if they are not exists
     """
-    print(university_name)
     url = f"https://vstup2021.edbo.gov.ua/offers/"
     options = Options()
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     driver = GeckoDriverManager().install()
     browser = webdriver.Firefox(service=Service(driver), options=options)
     browser.get(url)
@@ -475,8 +474,9 @@ async def get_university_department(
     await asyncio.sleep(2)
     universities = browser.find_elements_by_class_name("university-title")
     for uni in universities:
-        await asyncio.sleep(2)
-        uni.click()
+        if university_name.upper() in uni.text:
+            await asyncio.sleep(1)
+            uni.click()
     soup = BeautifulSoup(browser.page_source, "lxml")
     browser.close()
     soup = soup.find("div", {"id": "universities"})
@@ -726,6 +726,9 @@ async def parse_ode_speciality(
 
 
 if __name__ == "__main__":
-    start = datetime.datetime.now()
-    asyncio.run(start_parsing())
-    print(datetime.datetime.now() - start)
+    # start = datetime.datetime.now()
+    # asyncio.run(start_parsing())
+    # print(datetime.datetime.now() - start)
+    connector = aiohttp.TCPConnector(limit=50, force_close=True)
+    request = aiohttp.ClientSession(connector=connector)
+    asyncio.run(get_university_department(request=request, university_name="Національний авіаційний університет", university_id=3))
