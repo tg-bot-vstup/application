@@ -5,21 +5,26 @@ import os
 import socket
 from selenium import webdriver
 from selenium.webdriver import Keys
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from webdriver_manager.firefox import GeckoDriverManager
 
 import aiohttp
 from bs4 import BeautifulSoup
-from db_models import (Coefficient, Knowledge_area, Region, Speciality,
-                       University, Zno)
+from db_models import (Coefficient,
+                       Knowledge_area,
+                       Region,
+                       Speciality,
+                       University,
+                       Zno)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 
 region_coefficient_dict = {
-    "м. Київ": 1.00,
+    "КИЇВ": 1.00,
     "Донецька область": 1.04,
     "Луганська область": 1.04,
     "Кіровоградська область": 1.04,
@@ -46,131 +51,133 @@ region_coefficient_dict = {
     "Чернівецька область": 1.02,
 }
 
-result = {'011 Освітні, педагогічні науки': 'Освіта/Педагогіка',
- '012 Дошкільна освіта': 'Освіта/Педагогіка',
- '013 Початкова освіта': 'Освіта/Педагогіка',
- '014 Середня освіта': 'Освіта/Педагогіка',
- '015 Професійна освіта': 'Освіта/Педагогіка',
- '016 Спеціальна освіта': 'Освіта/Педагогіка',
- '017 Фізична культура і спорт': 'Освіта/Педагогіка',
- '021 Аудіовізуальне мистецтво та виробництво': 'Культура і мистецтво',
- '022 Дизайн': 'Культура і мистецтво',
- '023 Образотворче мистецтво, декоративне мистецтво, реставрація': 'Культура і '
-                                                                   'мистецтво',
- '024 Хореографія': 'Культура і мистецтво',
- '025 Музичне мистецтво': 'Культура і мистецтво',
- '026 Сценічне мистецтво': 'Культура і мистецтво',
- '027 Музеєзнавство, пам’яткознавство': 'Культура і мистецтво',
- '028 Менеджмент соціокультурної діяльності': 'Культура і мистецтво',
- '029 Інформаційна, бібліотечна та архівна справа': 'Культура і мистецтво',
- '031 Релігієзнавство': 'Гуманітарні науки',
- '032 Історія та археологія': 'Гуманітарні науки',
- '033 Філософія': 'Гуманітарні науки',
- '034 Культурологія': 'Гуманітарні науки',
- '035 Філологія': 'Гуманітарні науки',
- '041 Богослов’я': 'Богослов’я',
- '051 Економіка': 'Соціальні та поведінкові науки',
- '052 Політологія': 'Соціальні та поведінкові науки',
- '053 Психологія': 'Соціальні та поведінкові науки',
- '054 Соціологія': 'Соціальні та поведінкові науки',
- '061 Журналістика': 'Журналістика',
- '071 Облік і оподаткування': 'Управління та адміністрування',
- '072 Фінанси, банківська справа та страхування': 'Управління та '
-                                                  'адміністрування',
- '073 Менеджмент': 'Управління та адміністрування',
- '075 Маркетинг': 'Управління та адміністрування',
- '076 Підприємництво, торгівля та біржова діяльність': 'Управління та '
-                                                       'адміністрування',
- '081 Право': 'Право',
- '091 Біологія': 'Біологія',
- '101 Екологія': 'Природничі науки',
- '102 Хімія': 'Природничі науки',
- '103 Науки про Землю': 'Природничі науки',
- '104 Фізика та астрономія': 'Природничі науки',
- '105 Прикладна фізика та наноматеріали': 'Природничі науки',
- '106 Географія': 'Природничі науки',
- '111 Математика': 'Математика та статистика',
- '112 Статистика': 'Математика та статистика',
- '113 Прикладна математика': 'Математика та статистика',
- '121 Інженерія програмного забезпечення': 'Інформаційні технології',
- "122 Комп'ютерні науки": 'Інформаційні технології',
- '123 Комп’ютерна інженерія': 'Інформаційні технології',
- '124 Системний аналіз': 'Інформаційні технології',
- '125 Кібербезпека': 'Інформаційні технології',
- '126 Інформаційні системи та технології': 'Інформаційні технології',
- '131 Прикладна механіка': 'Механічна інженерія',
- '132 Матеріалознавство': 'Механічна інженерія',
- '133 Галузеве машинобудування': 'Механічна інженерія',
- '134 Авіаційна та ракетно-космічна техніка': 'Механічна інженерія',
- '135 Суднобудування': 'Механічна інженерія',
- '136 Металургія': 'Механічна інженерія',
- '141 Електроенергетика, електротехніка та електромеханіка': 'Електрична '
-                                                             'інженерія',
- '142 Енергетичне машинобудування': 'Електрична інженерія',
- '143 Атомна енергетика': 'Електрична інженерія',
- '144 Теплоенергетика': 'Електрична інженерія',
- '145 Гідроенергетика': 'Електрична інженерія',
- '151 Автоматизація та комп’ютерно-інтегровані технології': 'Автоматизація та '
-                                                            'приладобудування',
- '152 Метрологія та інформаційно-вимірювальна техніка': 'Автоматизація та '
-                                                        'приладобудування',
- '153 Мікро- та наносистемна техніка': 'Автоматизація та приладобудування',
- '161 Хімічні технології та інженерія': 'Хімічна та біоінженерія',
- '162 Біотехнології та біоінженерія': 'Хімічна та біоінженерія',
- '163 Біомедична інженерія': 'Хімічна та біоінженерія',
- '171 Електроніка': 'Електроніка та телекомунікації',
- '172 Телекомунікації та радіотехніка': 'Електроніка та телекомунікації',
- '173 Авіоніка': 'Електроніка та телекомунікації',
- '181 Харчові технології': 'Виробництво та технології',
- '182 Технології легкої промисловості': 'Виробництво та технології',
- '183 Технології захисту навколишнього середовища': 'Виробництво та технології',
- '184 Гірництво': 'Виробництво та технології',
- '185 Нафтогазова інженерія та технології': 'Виробництво та технології',
- '186 Видавництво та поліграфія': 'Виробництво та технології',
- '187 Деревообробні та меблеві технології': 'Виробництво та технології',
- '191 Архітектура та містобудування': 'Архітектура та будівництво',
- '192 Будівництво та цивільна інженерія': 'Архітектура та будівництво',
- '193 Геодезія та землеустрій': 'Архітектура та будівництво',
- '194 Гідротехнічне будівництво, водна інженерія та водні технології': 'Архітектура '
-                                                                       'та '
-                                                                       'будівництво',
- '201 Агрономія': 'Аграрні науки та продовольство',
- '202 Захист і карантин рослин': 'Аграрні науки та продовольство',
- '203 Садівництво та виноградарство': 'Аграрні науки та продовольство',
- '204 Технологія виробництва і переробки продукції тваринництва': 'Аграрні '
-                                                                  'науки та '
-                                                                  'продовольство',
- '205 Лісове господарство': 'Аграрні науки та продовольство',
- '206 Садово-паркове господарство': 'Аграрні науки та продовольство',
- '207 Водні біоресурси та аквакультура': 'Аграрні науки та продовольство',
- '208 Агроінженерія': 'Аграрні науки та продовольство',
- '223 Медсестринство': 'Охорона здоров’я',
- '224 Технології медичної діагностики та лікування': 'Охорона здоров’я',
- '226 Фармація, промислова фармація': 'Охорона здоров’я',
- '227 Фізична терапія, ерготерапія': 'Охорона здоров’я',
- '229 Громадське здоров`я': 'Охорона здоров’я',
- '231 Соціальна робота': 'Соціальна робота',
- '232 Соціальне забезпечення': 'Соціальна робота',
- '241 Готельно-ресторанна справа': 'Сфера обслуговування',
- '242 Туризм': 'Сфера обслуговування',
- '251 Державна безпека': 'Воєнні науки, національна безпека, безпека '
-                         'державного кордону',
- '256 Національна безпека': 'Воєнні науки, національна безпека, безпека '
-                            'державного кордону',
- '261 Пожежна безпека': 'Цивільна безпека',
- '262 Правоохоронна діяльність': 'Цивільна безпека',
- '263 Цивільна безпека': 'Цивільна безпека',
- '271 Річковий та морський транспорт': 'Транспорт',
- '272 Авіаційний транспорт': 'Транспорт',
- '273 Залізничний транспорт': 'Транспорт',
- '274 Автомобільний транспорт': 'Транспорт',
- '275 Транспортні технології': 'Транспорт',
- '281 Публічне управління та адміністрування': 'Публічне управління та '
-                                               'адміністрування',
- '291 Міжнародні відносини, суспільні комунікації та регіональні студії': 'Міжнародні '
-                                                                          'відносини',
- '292 Міжнародні економічні відносини': 'Міжнародні відносини',
- '293 Міжнародне право': 'Міжнародні відносини'}
+result = {
+    "011 Освітні, педагогічні науки": "Освіта/Педагогіка",
+    "012 Дошкільна освіта": "Освіта/Педагогіка",
+    "013 Початкова освіта": "Освіта/Педагогіка",
+    "014 Середня освіта": "Освіта/Педагогіка",
+    "015 Професійна освіта": "Освіта/Педагогіка",
+    "016 Спеціальна освіта": "Освіта/Педагогіка",
+    "017 Фізична культура і спорт": "Освіта/Педагогіка",
+    "021 Аудіовізуальне мистецтво та виробництво": "Культура і мистецтво",
+    "022 Дизайн": "Культура і мистецтво",
+    "023 Образотворче мистецтво, декоративне мистецтво, реставрація":
+        "Культура і мистецтво",
+    "024 Хореографія": "Культура і мистецтво",
+    "025 Музичне мистецтво": "Культура і мистецтво",
+    "026 Сценічне мистецтво": "Культура і мистецтво",
+    "027 Музеєзнавство, пам’яткознавство": "Культура і мистецтво",
+    "028 Менеджмент соціокультурної діяльності": "Культура і мистецтво",
+    "029 Інформаційна, бібліотечна та архівна справа": "Культура і мистецтво",
+    "031 Релігієзнавство": "Гуманітарні науки",
+    "032 Історія та археологія": "Гуманітарні науки",
+    "033 Філософія": "Гуманітарні науки",
+    "034 Культурологія": "Гуманітарні науки",
+    "035 Філологія": "Гуманітарні науки",
+    "041 Богослов’я": "Богослов’я",
+    "051 Економіка": "Соціальні та поведінкові науки",
+    "052 Політологія": "Соціальні та поведінкові науки",
+    "053 Психологія": "Соціальні та поведінкові науки",
+    "054 Соціологія": "Соціальні та поведінкові науки",
+    "061 Журналістика": "Журналістика",
+    "071 Облік і оподаткування": "Управління та адміністрування",
+    "072 Фінанси, банківська справа та страхування":
+        "Управління та адміністрування",
+    "073 Менеджмент": "Управління та адміністрування",
+    "075 Маркетинг": "Управління та адміністрування",
+    "076 Підприємництво, торгівля та біржова діяльність": "Управління та "
+    "адміністрування",
+    "081 Право": "Право",
+    "091 Біологія": "Біологія",
+    "101 Екологія": "Природничі науки",
+    "102 Хімія": "Природничі науки",
+    "103 Науки про Землю": "Природничі науки",
+    "104 Фізика та астрономія": "Природничі науки",
+    "105 Прикладна фізика та наноматеріали": "Природничі науки",
+    "106 Географія": "Природничі науки",
+    "111 Математика": "Математика та статистика",
+    "112 Статистика": "Математика та статистика",
+    "113 Прикладна математика": "Математика та статистика",
+    "121 Інженерія програмного забезпечення": "Інформаційні технології",
+    "122 Комп'ютерні науки": "Інформаційні технології",
+    "123 Комп’ютерна інженерія": "Інформаційні технології",
+    "124 Системний аналіз": "Інформаційні технології",
+    "125 Кібербезпека": "Інформаційні технології",
+    "126 Інформаційні системи та технології": "Інформаційні технології",
+    "131 Прикладна механіка": "Механічна інженерія",
+    "132 Матеріалознавство": "Механічна інженерія",
+    "133 Галузеве машинобудування": "Механічна інженерія",
+    "134 Авіаційна та ракетно-космічна техніка": "Механічна інженерія",
+    "135 Суднобудування": "Механічна інженерія",
+    "136 Металургія": "Механічна інженерія",
+    "141 Електроенергетика, електротехніка та електромеханіка": "Електрична "
+    "інженерія",
+    "142 Енергетичне машинобудування": "Електрична інженерія",
+    "143 Атомна енергетика": "Електрична інженерія",
+    "144 Теплоенергетика": "Електрична інженерія",
+    "145 Гідроенергетика": "Електрична інженерія",
+    "151 Автоматизація та комп’ютерно-інтегровані технології":
+        "Автоматизація та приладобудування",
+    "152 Метрологія та інформаційно-вимірювальна техніка": "Автоматизація та "
+    "приладобудування",
+    "153 Мікро- та наносистемна техніка": "Автоматизація та приладобудування",
+    "161 Хімічні технології та інженерія": "Хімічна та біоінженерія",
+    "162 Біотехнології та біоінженерія": "Хімічна та біоінженерія",
+    "163 Біомедична інженерія": "Хімічна та біоінженерія",
+    "171 Електроніка": "Електроніка та телекомунікації",
+    "172 Телекомунікації та радіотехніка": "Електроніка та телекомунікації",
+    "173 Авіоніка": "Електроніка та телекомунікації",
+    "181 Харчові технології": "Виробництво та технології",
+    "182 Технології легкої промисловості": "Виробництво та технології",
+    "183 Технології захисту навколишнього середовища":
+        "Виробництво та технології",
+    "184 Гірництво": "Виробництво та технології",
+    "185 Нафтогазова інженерія та технології": "Виробництво та технології",
+    "186 Видавництво та поліграфія": "Виробництво та технології",
+    "187 Деревообробні та меблеві технології": "Виробництво та технології",
+    "191 Архітектура та містобудування": "Архітектура та будівництво",
+    "192 Будівництво та цивільна інженерія": "Архітектура та будівництво",
+    "193 Геодезія та землеустрій": "Архітектура та будівництво",
+    "194 Гідротехнічне будівництво, водна інженерія та водні технології":
+        "Архітектура та будівництво",
+    "201 Агрономія": "Аграрні науки та продовольство",
+    "202 Захист і карантин рослин": "Аграрні науки та продовольство",
+    "203 Садівництво та виноградарство": "Аграрні науки та продовольство",
+    "204 Технологія виробництва і переробки продукції тваринництва": "Аграрні "
+    "науки та "
+    "продовольство",
+    "205 Лісове господарство": "Аграрні науки та продовольство",
+    "206 Садово-паркове господарство": "Аграрні науки та продовольство",
+    "207 Водні біоресурси та аквакультура": "Аграрні науки та продовольство",
+    "208 Агроінженерія": "Аграрні науки та продовольство",
+    "223 Медсестринство": "Охорона здоров’я",
+    "224 Технології медичної діагностики та лікування": "Охорона здоров’я",
+    "226 Фармація, промислова фармація": "Охорона здоров’я",
+    "227 Фізична терапія, ерготерапія": "Охорона здоров’я",
+    "229 Громадське здоров`я": "Охорона здоров’я",
+    "231 Соціальна робота": "Соціальна робота",
+    "232 Соціальне забезпечення": "Соціальна робота",
+    "241 Готельно-ресторанна справа": "Сфера обслуговування",
+    "242 Туризм": "Сфера обслуговування",
+    "251 Державна безпека": "Воєнні науки, національна безпека, безпека "
+    "державного кордону",
+    "256 Національна безпека": "Воєнні науки, національна безпека, безпека "
+    "державного кордону",
+    "261 Пожежна безпека": "Цивільна безпека",
+    "262 Правоохоронна діяльність": "Цивільна безпека",
+    "263 Цивільна безпека": "Цивільна безпека",
+    "271 Річковий та морський транспорт": "Транспорт",
+    "272 Авіаційний транспорт": "Транспорт",
+    "273 Залізничний транспорт": "Транспорт",
+    "274 Автомобільний транспорт": "Транспорт",
+    "275 Транспортні технології": "Транспорт",
+    "281 Публічне управління та адміністрування": "Публічне управління та "
+    "адміністрування",
+    "291 Міжнародні відносини, суспільні комунікації та регіональні студії":
+        "Міжнародні відносини",
+    "292 Міжнародні економічні відносини": "Міжнародні відносини",
+    "293 Міжнародне право": "Міжнародні відносини",
+}
 
 specialities_coefficient_dict = {
     "012": 1.02,
@@ -237,6 +244,8 @@ specialities_coefficient_dict = {
     "275": 1.02,
 }
 
+driver = GeckoDriverManager().install()
+
 db_link = "postgresql+asyncpg:" + os.environ.get("DATABASE_URL")
 async_engine = create_async_engine(db_link, pool_size=30, pool_timeout=300)
 async_session = sessionmaker(
@@ -289,31 +298,27 @@ async def start_parsing():
     function for parsing all regions and region urls from vstup.osvita.ua
     and add region if it does not exist
     """
-    url = "https://abit-poisk.org.ua/rate2021"
+    url = "https://registry.edbo.gov.ua"
     connector = aiohttp.TCPConnector(limit=50, force_close=True)
     request = aiohttp.ClientSession(connector=connector)
     async with request.get(url, headers=headers) as response:
         soup = BeautifulSoup(await response.text(), "lxml")
 
-        select_list_regions = soup.find(
-            "table",
-            class_="table table-bordered"
-        )
-        if select_list_regions:
-            select_list_regions = select_list_regions.find_all(
-                "a"
-            )
+        select_list_regions = soup.find_all("a", class_="region")
         if select_list_regions:
             # tasks = []
             for option in select_list_regions:
-                option_text = option.text
+                print(option)
+                option_text = option.text.split("[")[0]
+                if option_text[-1].upper() == "А":
+                    option_text += " область"
                 print(option_text)
                 option_value = option.get("href")
                 if option_value:
                     region_id = await get_region(option_text)
                     if not region_id:
                         region_id = await create_region(option_text)
-                    region_url = url.replace('/rate2021', '') + option_value
+                    region_url = url + option_value
                     print(region_url)
                     # tasks.append(
                     #     asyncio.ensure_future(
@@ -324,10 +329,11 @@ async def start_parsing():
                     #         )
                     #     )
                     # )
-                    await get_region_universities(
+                    await get_region_locations(
                         request=request,
                         region_url=region_url,
-                        region_id=region_id
+                        region_id=region_id,
+                        region_name=option_text,
                     )
             # await asyncio.wait(tasks)
     await request.close()
@@ -366,50 +372,37 @@ async def create_university(university: str, region_id: int):
             return university_object.id
 
 
-async def get_region_universities(
-    request: aiohttp.ClientSession, region_url: str, region_id: int
+async def get_region_locations(
+    request: aiohttp.ClientSession,
+    region_url: str,
+    region_id: int,
+    region_name
 ):
     """
     Method that get all universities and university urls for one region
     and add them to db if they are not in there already
     """
     if region_url:
-        while True:
-            soup = await get_soup(request, url=region_url, headers=headers)
-            all_uni = soup.find(
-                "table",
-                class_="table table-bordered"
+        soup = await get_soup(request, url=region_url, headers=headers)
+        all_locations = soup.find_all("h3", class_="locality")
+        if all_locations:
+            for loc in all_locations:
+                location_name = loc.find("a")
+                if location_name:
+                    location_name = location_name.text
+                    location_name = location_name.replace(
+                        f"({region_name})", ""
+                    ).strip()
+                print(location_name)
+                await get_location_universities(
+                    request=request,
+                    location=location_name,
+                    region_id=region_id
+                )
+        else:
+            await get_location_universities(
+                request=request, location=region_name, region_id=region_id
             )
-            if all_uni:
-                all_uni = all_uni.find_all("a")
-                # tasks = []
-                if all_uni:
-                    for uni in all_uni:
-                        uni_text = uni.text
-                        print(uni_text)
-                        university_id = await get_university(
-                            uni_text, region_id=region_id
-                        )
-                        if not university_id:
-                            university_id = await create_university(
-                                university=uni_text, region_id=region_id
-                            )
-                        await get_university_department(
-                            request=request,
-                            university_name=uni_text,
-                            university_id=university_id,
-                        )
-                    #     tasks.append(
-                    #         asyncio.ensure_future(
-                    #             get_university_department(
-                    #                 request=request,
-                    #                 university_url=university_url,
-                    #                 university_id=university_id
-                    #             )
-                    #         )
-                    #     )
-                    # await asyncio.wait(tasks)
-                    break
 
 
 async def get_soup(request: aiohttp.ClientSession, url: str, headers: dict):
@@ -454,58 +447,73 @@ async def create_knowledge_area(university_id, knowledge_area):
             return knowledge_area.id
 
 
-async def get_university_department(
-    request: aiohttp.ClientSession, university_name: str, university_id: int
+async def get_location_universities(
+    request: aiohttp.ClientSession, location: str, region_id
 ):
     """
     Method that parse every speciality for one university
     and add knowledge areas if they are not exists
     """
-    url = f"https://vstup2021.edbo.gov.ua/offers/"
+    url = "https://vstup2021.edbo.gov.ua/offers/"
     options = Options()
-    # options.add_argument("--headless")
-    driver = GeckoDriverManager().install()
-    browser = webdriver.Firefox(service=Service(driver), options=options)
-    browser.get(url)
-    find_field = browser.find_element_by_id("offers-search-ft-q")
-    find_field.send_keys("бакалавр " + university_name + " денна")
-    await asyncio.sleep(2)
-    find_field.send_keys(Keys.ENTER)
-    await asyncio.sleep(2)
-    universities = browser.find_elements_by_class_name("university-title")
-    for uni in universities:
-        if university_name.upper() in uni.text:
-            await asyncio.sleep(1)
+    options.add_argument("--headless")
+    try:
+        browser = webdriver.Firefox(service=Service(driver), options=options)
+        browser.get(url)
+        find_field = browser.find_element(By.ID, "offers-search-ft-q")
+        find_field.send_keys("бакалавр " + location + " денна")
+        await asyncio.sleep(2)
+        find_field.send_keys(Keys.ENTER)
+        await asyncio.sleep(2)
+        universities = browser.find_elements(By.CLASS_NAME, "university-title")
+        for uni in universities:
             uni.click()
-    soup = BeautifulSoup(browser.page_source, "lxml")
-    browser.close()
-    soup = soup.find("div", {"id": "universities"})
-    deps_all = soup.select('div[class*="university-offers-qbe"]')
-    departments = []
-    for dep in deps_all:
-        if "Бакалавр" in dep.text:
-            if "(основа вступу - Повна загальна середня освіта)" in dep.text:
-                departments.append(dep)
-    if departments:
+        soup = BeautifulSoup(browser.page_source, "lxml")
+        browser.close()
+        soup = soup.find_all("div", {"class": "university"})
         tasks = []
-        for dep in departments:
-            specialities = dep.find_all("div", class_="offer")
-            for spec in specialities:
-                # await parse_ode_speciality(
-                #     request,
-                #     spec,
-                #     university_id
-                # )
+        for university in soup:
+            if university:
+                # await get_all_departments(request, university, region_id)
                 tasks.append(
                     asyncio.ensure_future(
-                        parse_ode_speciality(
-                            request,
-                            spec,
-                            university_id
-                        )
+                        get_all_departments(request, university, region_id)
                     )
                 )
-        await asyncio.wait(tasks)
+        if tasks:
+            await asyncio.wait(tasks)
+    except selenium.common.exceptions.NoSuchElementException:
+        pass
+
+
+async def get_all_departments(request, university_soup, region_id):
+    university = university_soup.find("div", class_="university-title")
+    if university:
+        university_code = university.find("span").text
+        university_name = university.text.replace(university_code, "")
+        university_id = await get_university(university_name, region_id)
+        if not university_id:
+            university_id = await create_university(university_name, region_id)
+        deps_all = university_soup.select(
+            'div[class*="university-offers-qbe"]'
+        )
+        departments = []
+        for dep in deps_all:
+            text = dep.text
+            if "Бакалавр" in text:
+                if "(основа вступу - Повна загальна середня освіта)" in text:
+                    departments.append(dep)
+        if departments:
+            tasks = []
+            for dep in departments:
+                specialities = dep.find_all("div", class_="offer")
+                for spec in specialities:
+                    tasks.append(
+                        asyncio.ensure_future(
+                            parse_one_speciality(request, spec, university_id)
+                        )
+                    )
+            await asyncio.wait(tasks)
 
 
 async def get_speciality(speciality_name: str, knowledge_area_id):
@@ -517,8 +525,7 @@ async def get_speciality(speciality_name: str, knowledge_area_id):
         async with session.begin():
             speciality_object = await session.execute(
                 select(Speciality).filter_by(
-                    name=speciality_name,
-                    area_id=knowledge_area_id
+                    name=speciality_name, area_id=knowledge_area_id
                 )
             )
             speciality_object = speciality_object.scalars().first()
@@ -534,8 +541,9 @@ async def create_speciality(speciality_name: str, knowledge_area_id: int):
     """
     async with async_session() as session:
         async with session.begin():
-            speciality_object = Speciality(name=speciality_name,
-                                           area_id=knowledge_area_id)
+            speciality_object = Speciality(
+                name=speciality_name, area_id=knowledge_area_id
+            )
             session.add_all([speciality_object])
             await session.commit()
             session.expunge(speciality_object)
@@ -659,76 +667,111 @@ async def edit_coefficient(
             await session.commit()
 
 
-async def parse_ode_speciality(
+async def parse_one_speciality(
     request: aiohttp.ClientSession, dep: BeautifulSoup, university_id: int
 ):
     """
     function used to parse information about one speciality and add/modify it
     """
-    speciality = dep.find("dl", class_="row offer-university-specialities-name")
-    speciality_name = f'{speciality.find("span", class_="badge badge-primary").text} {speciality.find("span", class_="text-uppercase text-primary").text}'
-    department = dep.find("dl", class_="row offer-university-facultet-name")
-    department = f"{department.find('dd').text}"
-    program = dep.find("dl", class_="row offer-study-programs")
-    program = f"{program.find('dd').text}"
-    knowledge_area = result[speciality_name]
-    knowledge_area_id = await get_knowledge_area(university_id=university_id, knowledge_area=knowledge_area)
-    if not knowledge_area_id:
-        knowledge_area_id = await create_knowledge_area(university_id, knowledge_area)
-    grades_names = dep.find('div', class_="offer-subjects")
-    grades_names = grades_names.find_all("div", class_="offer-subject-wrapper")
-    try:
-        min_budget = dep.find("div", class_="col-md-4 col-sm-12 stats-field stats-field-obm").find("div", class_="value").text
-    except:
-        min_budget = None
-    try:
-        avg_contract = dep.find("div", class_="col-md-4 col-sm-12 stats-field stats-field-ocm").find("div", class_="value").text
-    except:
-        avg_contract = None
-    speciality_object = await get_speciality(speciality_name, knowledge_area_id)
-    if not speciality_object:
-        speciality_object = await create_speciality(speciality_name, knowledge_area_id)
-    await edit_speciality(
-        speciality_name=speciality_name,
-        speciality_object=speciality_object,
-        min_budget=min_budget,
-        avg_contract=avg_contract,
-        department=department,
-        program=program,
-        knowledge_area_id=knowledge_area_id,
+    speciality = dep.find(
+        "dl",
+        class_="row offer-university-specialities-name"
     )
-    for grade in grades_names:
-        subjects = grade.find_all("div", class_="subject-wrapper")
-        for subject in subjects:
-            coefficient = subject.find("div", class_="coefficient").text
-            name = subject.select('div[class*="subject-name"]')
-            name = name[0].text
-            try:
-                zno_id = await create_zno(name)
-            except IntegrityError:
-                zno_id = await get_zno(name)
-            coefficient_object = await get_coefficient(
-                speciality_object.id,
-                zno_id
+    speciality_code = speciality.find(
+        "span",
+        class_="badge badge-primary"
+    ).text
+    speciality_name = speciality.find(
+        "span",
+        class_="text-uppercase text-primary"
+    ).text
+    speciality_full_name = f'{speciality_code} {speciality_name}'
+    department = dep.find("dl", class_="row offer-university-facultet-name")
+    if department:
+        department = f"{department.find('dd').text}"
+        program = dep.find("dl", class_="row offer-study-programs")
+        program = f"{program.find('dd').text}"
+        knowledge_area = result[speciality_full_name]
+        knowledge_area_id = await get_knowledge_area(
+            university_id=university_id, knowledge_area=knowledge_area
+        )
+        if not knowledge_area_id:
+            knowledge_area_id = await create_knowledge_area(
+                university_id, knowledge_area
             )
-            if not coefficient_object:
-                coefficient_object = await create_coefficient(
-                    speciality_object.id, zno_id
+        grades_names = dep.find("div", class_="offer-subjects")
+        grades_names = grades_names.find_all(
+            "div",
+            class_="offer-subject-wrapper"
+        )
+        try:
+            min_budget = (
+                dep.find(
+                    "div",
+                    class_="col-md-4 col-sm-12 stats-field stats-field-obm"
                 )
-            required = True
-            if "3" == grade.find("div", class_="subject-number").text:
-                required = False
-            await edit_coefficient(
-                coefficient_object,
-                coefficient,
-                required
+                .find("div", class_="value")
+                .text
             )
+        except Exception:
+            min_budget = None
+        try:
+            avg_contract = (
+                dep.find(
+                    "div",
+                    class_="col-md-4 col-sm-12 stats-field stats-field-ocm"
+                )
+                .find("div", class_="value")
+                .text
+            )
+        except Exception:
+            avg_contract = None
+        speciality_object = await get_speciality(
+            speciality_full_name,
+            knowledge_area_id
+        )
+        if not speciality_object:
+            speciality_object = await create_speciality(
+                speciality_full_name, knowledge_area_id
+            )
+        await edit_speciality(
+            speciality_name=speciality_full_name,
+            speciality_object=speciality_object,
+            min_budget=min_budget,
+            avg_contract=avg_contract,
+            department=department,
+            program=program,
+            knowledge_area_id=knowledge_area_id,
+        )
+        for grade in grades_names:
+            subjects = grade.find_all("div", class_="subject-wrapper")
+            for subject in subjects:
+                coefficient = subject.find("div", class_="coefficient").text
+                name = subject.select('div[class*="subject-name"]')
+                name = name[0].text
+                try:
+                    zno_id = await create_zno(name)
+                except IntegrityError:
+                    zno_id = await get_zno(name)
+                coefficient_object = await get_coefficient(
+                    speciality_object.id,
+                    zno_id
+                )
+                if not coefficient_object:
+                    coefficient_object = await create_coefficient(
+                        speciality_object.id, zno_id
+                    )
+                required = True
+                if "3" == grade.find("div", class_="subject-number").text:
+                    required = False
+                await edit_coefficient(
+                    coefficient_object,
+                    coefficient,
+                    required
+                )
 
 
 if __name__ == "__main__":
-    # start = datetime.datetime.now()
-    # asyncio.run(start_parsing())
-    # print(datetime.datetime.now() - start)
-    connector = aiohttp.TCPConnector(limit=50, force_close=True)
-    request = aiohttp.ClientSession(connector=connector)
-    asyncio.run(get_university_department(request=request, university_name="Національний авіаційний університет", university_id=3))
+    start = datetime.datetime.now()
+    asyncio.run(start_parsing())
+    print(datetime.datetime.now() - start)

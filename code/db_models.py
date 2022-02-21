@@ -76,7 +76,7 @@ class Speciality(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
-    program = Column(String(255))
+    program = Column(String(500))
     min_rate_budget = Column(Float)
     average_rate_contract = Column(Float)
     area_id = Column(Integer, ForeignKey("knowledge_area.id"))
@@ -111,4 +111,5 @@ class University(Base):
     def __repr__(self):
         return self.name
 
+# Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
